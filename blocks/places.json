@@ -1,0 +1,1938 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-11-14T20:14:39Z",
+    "timestamp_areas_base": "2026-11-14T17:33:06Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 153829595,
+  "lat": 35.2698565,
+  "lon": -80.7829520,
+  "tags": {
+    "ele": "233",
+    "gnis:feature_id": "1005889",
+    "name": "Hidden Valley",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 153830724,
+  "lat": 35.2365286,
+  "lon": -80.8098023,
+  "tags": {
+    "ele": "223",
+    "gnis:feature_id": "1001434",
+    "name": "Villa Heights",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 153832004,
+  "lat": 35.2826410,
+  "lon": -80.8617384,
+  "tags": {
+    "ele": "245",
+    "gnis:feature_id": "1005882",
+    "name": "Garden Park",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 153832512,
+  "lat": 35.2611211,
+  "lon": -80.8197886,
+  "tags": {
+    "ele": "232",
+    "gnis:feature_id": "1018870",
+    "name": "Atando Junction",
+    "place": "neighbourhood",
+    "wikidata": "Q122547316"
+  }
+},
+{
+  "type": "node",
+  "id": 153837371,
+  "lat": 35.1382582,
+  "lon": -80.8683834,
+  "tags": {
+    "ele": "195",
+    "gnis:feature_id": "1001411",
+    "name": "Starmount",
+    "place": "suburb",
+    "wikidata": "Q7602129"
+  }
+},
+{
+  "type": "node",
+  "id": 153847656,
+  "lat": 35.2789747,
+  "lon": -80.9327985,
+  "tags": {
+    "ele": "236",
+    "gnis:feature_id": "991951",
+    "name": "Paw Creek",
+    "place": "suburb",
+    "wikidata": "Q19987473"
+  }
+},
+{
+  "type": "node",
+  "id": 153861306,
+  "lat": 35.1654216,
+  "lon": -80.8706278,
+  "tags": {
+    "ele": "219",
+    "gnis:feature_id": "1005715",
+    "name": "Currituck",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 153866593,
+  "lat": 35.2693090,
+  "lon": -80.7750701,
+  "tags": {
+    "ele": "230",
+    "gnis:feature_id": "1005890",
+    "landuse": "residential",
+    "name": "Fairfax Woods",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 153873765,
+  "lat": 35.1186739,
+  "lon": -80.8399701,
+  "tags": {
+    "ele": "186",
+    "gnis:feature_id": "1001377",
+    "name": "Quail Hollow",
+    "place": "suburb",
+    "wikidata": "Q7268496"
+  }
+},
+{
+  "type": "node",
+  "id": 153880869,
+  "lat": 35.2532251,
+  "lon": -80.7377824,
+  "tags": {
+    "ele": "237",
+    "gnis:feature_id": "1005626",
+    "name": "Candlewood",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 153902091,
+  "lat": 35.2157738,
+  "lon": -80.8221233,
+  "tags": {
+    "ele": "209",
+    "gnis:feature_id": "1001262",
+    "name": "Elizabeth",
+    "place": "suburb",
+    "wikidata": "Q5362242"
+  }
+},
+{
+  "type": "node",
+  "id": 153904389,
+  "lat": 35.2202706,
+  "lon": -80.8108494,
+  "tags": {
+    "alt_name": "Plaza-Midwood",
+    "ele": "223",
+    "gnis:feature_id": "1001333",
+    "name": "Plaza Midwood",
+    "place": "suburb",
+    "wikidata": "Q7203570",
+    "wikipedia": "en:Plaza-Midwood (Charlotte neighborhood)"
+  }
+},
+{
+  "type": "node",
+  "id": 153910318,
+  "lat": 35.2635725,
+  "lon": -80.8851429,
+  "tags": {
+    "ele": "226",
+    "gnis:feature_id": "1001293",
+    "name": "Hoskins",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 153914976,
+  "lat": 35.2884737,
+  "lon": -80.8964613,
+  "tags": {
+    "ele": "246",
+    "gnis:feature_id": "1005877",
+    "name": "Chateau Woods",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 153926100,
+  "lat": 35.2793077,
+  "lon": -80.8614606,
+  "tags": {
+    "ele": "229",
+    "gnis:feature_id": "1001349",
+    "name": "Northwood",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 153928330,
+  "lat": 35.4992614,
+  "lon": -80.8485218,
+  "tags": {
+    "gnis:feature_id": "1019914",
+    "name": "Davidson",
+    "place": "town",
+    "population": "10944",
+    "wikidata": "Q2026925",
+    "wikipedia": "en:Davidson, North Carolina"
+  }
+},
+{
+  "type": "node",
+  "id": 153930436,
+  "lat": 35.3167601,
+  "lon": -80.9534299,
+  "tags": {
+    "ele": "231",
+    "gnis:feature_id": "1022620",
+    "name": "Shuffletown",
+    "place": "suburb",
+    "wikidata": "Q122545197"
+  }
+},
+{
+  "type": "node",
+  "id": 153934963,
+  "lat": 35.4536826,
+  "lon": -80.8429011,
+  "tags": {
+    "ele": "259",
+    "gnis:feature_id": "982413",
+    "name": "Caldwell",
+    "note": "unincorporated",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 153939087,
+  "lat": 35.3015001,
+  "lon": -80.8960033,
+  "tags": {
+    "ele": "251",
+    "gnis:feature_id": "991451",
+    "name": "Oakdale",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 153941296,
+  "lat": 35.2157958,
+  "lon": -80.8657754,
+  "tags": {
+    "ele": "231",
+    "gnis:feature_id": "1001439",
+    "name": "Wilmore",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 153948314,
+  "lat": 35.1668111,
+  "lon": -80.8184044,
+  "tags": {
+    "ele": "207",
+    "gnis:feature_id": "1001270",
+    "name": "Foxcroft",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 153955709,
+  "lat": 35.2720852,
+  "lon": -80.8970167,
+  "tags": {
+    "ele": "243",
+    "gnis:feature_id": "1019612",
+    "name": "Chemway",
+    "place": "neighbourhood",
+    "wikidata": "Q122548986"
+  }
+},
+{
+  "type": "node",
+  "id": 153963385,
+  "lat": 35.4263988,
+  "lon": -80.9174570,
+  "tags": {
+    "ele": "245",
+    "gnis:feature_id": "1020721",
+    "name": "Hicks Crossroads",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 153963424,
+  "lat": 35.2712939,
+  "lon": -80.9162074,
+  "tags": {
+    "ele": "234",
+    "gnis:feature_id": "1022957",
+    "name": "Todd Park",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 153965148,
+  "lat": 35.1484638,
+  "lon": -80.8308980,
+  "tags": {
+    "ele": "217",
+    "gnis:feature_id": "1001408",
+    "name": "SouthPark",
+    "place": "suburb",
+    "population": "17765",
+    "wikidata": "Q7565319"
+  }
+},
+{
+  "type": "node",
+  "id": 153966674,
+  "lat": 35.1759450,
+  "lon": -80.7982654,
+  "tags": {
+    "ele": "223",
+    "gnis:feature_id": "1001242",
+    "name": "Cotswold",
+    "place": "suburb",
+    "wikidata": "Q5175471"
+  }
+},
+{
+  "type": "node",
+  "id": 153967800,
+  "lat": 35.1159532,
+  "lon": -80.7224386,
+  "tags": {
+    "ele": "229",
+    "gnis:feature_id": "1021369",
+    "name": "Matthews",
+    "place": "town",
+    "population": "26296",
+    "population:date": "2006",
+    "source:population": "US Census",
+    "wikidata": "Q2028173"
+  }
+},
+{
+  "type": "node",
+  "id": 153969092,
+  "lat": 35.4817050,
+  "lon": -80.8590006,
+  "tags": {
+    "ele": "245",
+    "gnis:feature_id": "983573",
+    "name": "Cornelius",
+    "place": "town",
+    "population": "20449",
+    "population:date": "2006",
+    "source:population": "US Census",
+    "wikidata": "Q2028004"
+  }
+},
+{
+  "type": "node",
+  "id": 153974245,
+  "lat": 35.0877894,
+  "lon": -80.8452253,
+  "tags": {
+    "ele": "191",
+    "gnis:feature_id": "1001218",
+    "name": "Carmel",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 153974353,
+  "lat": 35.1929210,
+  "lon": -80.8634052,
+  "tags": {
+    "ele": "221",
+    "gnis:feature_id": "1001392",
+    "name": "Sedgefield",
+    "place": "suburb",
+    "wikidata": "Q7445223"
+  }
+},
+{
+  "type": "node",
+  "id": 153976436,
+  "lat": 35.2084757,
+  "lon": -80.8992391,
+  "tags": {
+    "ele": "205",
+    "gnis:feature_id": "1005738",
+    "name": "Dalton Village",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 153986535,
+  "lat": 35.2637515,
+  "lon": -80.9417396,
+  "tags": {
+    "ele": "217",
+    "gnis:feature_id": "1005872",
+    "name": "White Oak Park",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 153986699,
+  "lat": 35.1354227,
+  "lon": -80.8434052,
+  "tags": {
+    "ele": "204",
+    "gnis:feature_id": "1001210",
+    "name": "Beverly Woods",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 153989249,
+  "lat": 35.2834736,
+  "lon": -80.9131282,
+  "tags": {
+    "ele": "254",
+    "gnis:feature_id": "1020813",
+    "name": "Homestead",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 153997953,
+  "lat": 35.3171141,
+  "lon": -80.7529397,
+  "tags": {
+    "name": "University City",
+    "place": "suburb",
+    "population": "35000",
+    "wikidata": "Q7894582",
+    "wikipedia": "en:University City (Charlotte neighborhood)"
+  }
+},
+{
+  "type": "node",
+  "id": 154006987,
+  "lat": 35.2576407,
+  "lon": -80.9247949,
+  "tags": {
+    "ele": "212",
+    "gnis:feature_id": "1005870",
+    "name": "Lewis",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154007738,
+  "lat": 35.2543070,
+  "lon": -80.9711845,
+  "tags": {
+    "ele": "197",
+    "gnis:feature_id": "1005686",
+    "name": "Twins Estates",
+    "place": "neighbourhood",
+    "wikidata": "Q122566983"
+  }
+},
+{
+  "type": "node",
+  "id": 154018793,
+  "lat": 35.2198646,
+  "lon": -80.8731274,
+  "tags": {
+    "ele": "213",
+    "gnis:feature_id": "1001274",
+    "name": "Glenwood",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154020949,
+  "lat": 35.2328730,
+  "lon": -80.8643635,
+  "tags": {
+    "ele": "213",
+    "gnis:feature_id": "1018642",
+    "name": "Wesley Heights",
+    "note": "The neighborhood is part of an area of Charlotte called \"West End.\"",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154026250,
+  "lat": 35.2323639,
+  "lon": -80.9039613,
+  "tags": {
+    "ele": "219",
+    "gnis:feature_id": "1001436",
+    "landuse": "residential",
+    "name": "Westerly Hill",
+    "place": "neighbourhood",
+    "wikidata": "Q122572715"
+  }
+},
+{
+  "type": "node",
+  "id": 154030216,
+  "lat": 35.2943732,
+  "lon": -80.9392253,
+  "tags": {
+    "ele": "202",
+    "gnis:feature_id": "1001244",
+    "name": "Coulwood",
+    "place": "suburb",
+    "wikidata": "Q5176188",
+    "wikipedia": "en:Coulwood (Charlotte neighborhood)"
+  }
+},
+{
+  "type": "node",
+  "id": 154034106,
+  "lat": 35.2676403,
+  "lon": -80.9445175,
+  "tags": {
+    "ele": "217",
+    "gnis:feature_id": "1005688",
+    "name": "Forest Pawtucket",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154036148,
+  "lat": 35.2576401,
+  "lon": -80.9759069,
+  "tags": {
+    "ele": "214",
+    "gnis:feature_id": "1005685",
+    "name": "Wildwood",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154037024,
+  "lat": 35.2055789,
+  "lon": -80.8267377,
+  "tags": {
+    "ele": "226",
+    "gnis:feature_id": "1018639",
+    "name": "Colonial Heights",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154038238,
+  "lat": 35.1916930,
+  "lon": -80.8334611,
+  "tags": {
+    "ele": "207",
+    "gnis:feature_id": "1001341",
+    "name": "Myers Park",
+    "place": "suburb",
+    "wikidata": "Q6947425",
+    "wikipedia": "en:Myers Park (Charlotte)"
+  }
+},
+{
+  "type": "node",
+  "id": 154041398,
+  "lat": 35.2254045,
+  "lon": -80.7227932,
+  "tags": {
+    "ele": "241",
+    "gnis:feature_id": "1020705",
+    "name": "Hickory Grove",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154052684,
+  "lat": 35.2409541,
+  "lon": -80.8643660,
+  "tags": {
+    "ele": "216",
+    "gnis:feature_id": "1001396",
+    "name": "Seversville",
+    "note": "The neighborhood is part of an area of Charlotte called \"West End.\"",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154063951,
+  "lat": 35.2693066,
+  "lon": -80.9725736,
+  "tags": {
+    "ele": "229",
+    "gnis:feature_id": "1005683",
+    "name": "Arlington",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154089045,
+  "lat": 35.1351448,
+  "lon": -80.8609056,
+  "tags": {
+    "ele": "194",
+    "gnis:feature_id": "1005717",
+    "landuse": "residential",
+    "name": "Huntingtowne Farms",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154093154,
+  "lat": 35.1004244,
+  "lon": -80.7656256,
+  "tags": {
+    "ele": "208",
+    "gnis:feature_id": "1001372",
+    "name": "Providence",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154098992,
+  "lat": 35.2487542,
+  "lon": -80.7356248,
+  "tags": {
+    "ele": "241",
+    "gnis:feature_id": "1005632",
+    "name": "Devonshire",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154126921,
+  "lat": 35.1992547,
+  "lon": -80.8060749,
+  "tags": {
+    "ele": "202",
+    "gnis:feature_id": "1001277",
+    "name": "Grier Heights",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154129273,
+  "lat": 35.2758542,
+  "lon": -80.7527803,
+  "tags": {
+    "ele": "235",
+    "gnis:feature_id": "991122",
+    "name": "Newell",
+    "place": "suburb",
+    "wikidata": "Q19987299"
+  }
+},
+{
+  "type": "node",
+  "id": 154131936,
+  "lat": 35.4670819,
+  "lon": -80.8142391,
+  "tags": {
+    "ele": "231",
+    "gnis:feature_id": "1020830",
+    "name": "Hopewell",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154131964,
+  "lat": 35.2594557,
+  "lon": -80.8328236,
+  "tags": {
+    "ele": "216",
+    "gnis:feature_id": "1001254",
+    "name": "Druid Hills",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154134455,
+  "lat": 35.2720865,
+  "lon": -80.7859036,
+  "tags": {
+    "ele": "238",
+    "gnis:feature_id": "1005891",
+    "landuse": "residential",
+    "name": "Virginia Manor",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154140488,
+  "lat": 35.2348634,
+  "lon": -80.8909278,
+  "tags": {
+    "ele": "235",
+    "gnis:feature_id": "1001202",
+    "name": "Ashley Park",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154152573,
+  "lat": 35.3684729,
+  "lon": -80.8225718,
+  "tags": {
+    "ele": "251",
+    "gnis:feature_id": "1006263",
+    "name": "Joplor",
+    "place": "suburb",
+    "wikidata": "Q122548146"
+  }
+},
+{
+  "type": "node",
+  "id": 154158445,
+  "lat": 35.0855409,
+  "lon": -80.8871253,
+  "tags": {
+    "ele": "179",
+    "gnis:feature_id": "1021940",
+    "name": "Pineville",
+    "place": "town",
+    "population": "10602",
+    "population:date": "2020",
+    "source:population": "US Census",
+    "wikidata": "Q2029607",
+    "wikipedia": "en:Pineville, North Carolina"
+  }
+},
+{
+  "type": "node",
+  "id": 154163711,
+  "lat": 35.1637453,
+  "lon": -80.8952757,
+  "tags": {
+    "ele": "205",
+    "gnis:feature_id": "1005732",
+    "name": "Yorkmount Park",
+    "place": "neighbourhood",
+    "wikidata": "Q122551404"
+  }
+},
+{
+  "type": "node",
+  "id": 154164570,
+  "lat": 35.2448810,
+  "lon": -80.8839212,
+  "tags": {
+    "ele": "226",
+    "gnis:feature_id": "1001263",
+    "name": "Enderly Park",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154174493,
+  "lat": 35.1717487,
+  "lon": -80.9611286,
+  "tags": {
+    "description": "Mostly industrial zoned subdivision in Steele Creek.",
+    "ele": "222",
+    "gnis:feature_id": "994767",
+    "name": "Shopton",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154187643,
+  "lat": 35.2097068,
+  "lon": -80.8861425,
+  "tags": {
+    "ele": "195",
+    "gnis:feature_id": "1001232",
+    "name": "Clanton Park",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154191636,
+  "lat": 35.3129180,
+  "lon": -80.8672943,
+  "tags": {
+    "ele": "245",
+    "gnis:feature_id": "1005901",
+    "name": "Spring Lake",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154199309,
+  "lat": 35.2879186,
+  "lon": -80.8697942,
+  "tags": {
+    "ele": "233",
+    "gnis:feature_id": "1005883",
+    "name": "Firestone",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154199335,
+  "lat": 35.2455293,
+  "lon": -80.8420414,
+  "tags": {
+    "ele": "206",
+    "gnis:feature_id": "1018640",
+    "name": "Greenville",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154203168,
+  "lat": 35.3887485,
+  "lon": -80.9575746,
+  "tags": {
+    "ele": "216",
+    "gnis:feature_id": "1018804",
+    "name": "Allison Ferry",
+    "place": "neighbourhood",
+    "wikidata": "Q122558158"
+  }
+},
+{
+  "type": "node",
+  "id": 154286374,
+  "lat": 35.2465311,
+  "lon": -80.8267375,
+  "tags": {
+    "ele": "233",
+    "gnis:feature_id": "1001313",
+    "name": "Lockwood",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154299900,
+  "lat": 35.1991751,
+  "lon": -80.8189060,
+  "tags": {
+    "ele": "208",
+    "gnis:feature_id": "1001258",
+    "name": "Eastover",
+    "place": "suburb",
+    "wikidata": "Q105571631"
+  }
+},
+{
+  "type": "node",
+  "id": 154310950,
+  "lat": 35.2640294,
+  "lon": -80.9300728,
+  "tags": {
+    "ele": "216",
+    "gnis:feature_id": "1005871",
+    "name": "Woodford Green",
+    "place": "neighbourhood",
+    "wikidata": "Q122545787"
+  }
+},
+{
+  "type": "node",
+  "id": 154313335,
+  "lat": 35.2305811,
+  "lon": -80.8184554,
+  "tags": {
+    "ele": "238",
+    "gnis:feature_id": "1001212",
+    "name": "Belmont",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154314582,
+  "lat": 35.2137544,
+  "lon": -80.8100707,
+  "tags": {
+    "ele": "224",
+    "gnis:feature_id": "1001227",
+    "name": "Chantilly",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154325320,
+  "lat": 35.1634855,
+  "lon": -80.8342207,
+  "tags": {
+    "ele": "196",
+    "gnis:feature_id": "1001206",
+    "name": "Barclay Downs",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154329415,
+  "lat": 35.3062514,
+  "lon": -80.8745166,
+  "tags": {
+    "ele": "253",
+    "gnis:feature_id": "1005903",
+    "name": "Sunset Hills",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154339360,
+  "lat": 35.2459764,
+  "lon": -80.7139579,
+  "tags": {
+    "ele": "214",
+    "gnis:feature_id": "1005634",
+    "name": "Embassy East",
+    "place": "neighbourhood",
+    "wikidata": "Q122562605"
+  }
+},
+{
+  "type": "node",
+  "id": 154345148,
+  "lat": 35.2573651,
+  "lon": -80.8974954,
+  "tags": {
+    "ele": "223",
+    "gnis:feature_id": "1005874",
+    "name": "Thomasboro",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154348388,
+  "lat": 35.1936371,
+  "lon": -80.7821796,
+  "tags": {
+    "ele": "234",
+    "gnis:feature_id": "1001352",
+    "name": "Oakhurst",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154352779,
+  "lat": 35.2970833,
+  "lon": -80.9981299,
+  "tags": {
+    "ele": "197",
+    "gnis:feature_id": "1022700",
+    "name": "Sodyeco",
+    "place": "suburb",
+    "wikidata": "Q122539067"
+  }
+},
+{
+  "type": "node",
+  "id": 154356109,
+  "lat": 35.2450417,
+  "lon": -80.8573395,
+  "tags": {
+    "ele": "211",
+    "gnis:feature_id": "1001213",
+    "name": "Biddleville",
+    "note": "The neighborhood is part of an area of Charlotte called \"West End.\"",
+    "place": "suburb",
+    "wikidata": "Q4904072",
+    "wikipedia": "en:Biddleville (Charlotte neighborhood)"
+  }
+},
+{
+  "type": "node",
+  "id": 154365360,
+  "lat": 35.2511139,
+  "lon": -80.8229899,
+  "tags": {
+    "ele": "227",
+    "gnis:feature_id": "1001427",
+    "name": "Tryon Hills",
+    "place": "suburb",
+    "wikidata": "Q122571916"
+  }
+},
+{
+  "type": "node",
+  "id": 154368619,
+  "lat": 35.1526369,
+  "lon": -80.8675099,
+  "tags": {
+    "ele": "209",
+    "gnis:feature_id": "1005716",
+    "name": "Montclaire",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154370577,
+  "lat": 35.2073655,
+  "lon": -80.8164598,
+  "tags": {
+    "ele": "221",
+    "gnis:feature_id": "1001389",
+    "name": "Rosemont",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 154372363,
+  "lat": 35.1776446,
+  "lon": -80.7692366,
+  "tags": {
+    "ele": "221",
+    "gnis:feature_id": "1022141",
+    "name": "Rama",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154377350,
+  "lat": 35.1858943,
+  "lon": -80.7300006,
+  "tags": {
+    "ele": "220",
+    "gnis:feature_id": "1020881",
+    "name": "Idlewild",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 154397864,
+  "lat": 35.2066117,
+  "lon": -80.8509137,
+  "tags": {
+    "ele": "225",
+    "gnis:feature_id": "1001252",
+    "name": "Dilworth",
+    "place": "suburb",
+    "wikidata": "Q5277098"
+  }
+},
+{
+  "type": "node",
+  "id": 158297555,
+  "lat": 36.6959947,
+  "lon": -78.0939937,
+  "tags": {
+    "ele": "145",
+    "gnis:feature_id": "1495802",
+    "name": "La Crosse",
+    "place": "village",
+    "population": "614",
+    "population:date": "2020",
+    "source:population": "US Census",
+    "wikidata": "Q1373491"
+  }
+},
+{
+  "type": "node",
+  "id": 158341682,
+  "lat": 36.5951779,
+  "lon": -78.1390116,
+  "tags": {
+    "ele": "104",
+    "gnis:feature_id": "1477137",
+    "name": "Bracey",
+    "place": "village",
+    "population": "1372",
+    "population:date": "2020",
+    "source:population": "US Census",
+    "wikidata": "Q4953257",
+    "wikipedia": "en:Bracey, Virginia"
+  }
+},
+{
+  "type": "node",
+  "id": 158459321,
+  "lat": 36.6348628,
+  "lon": -78.5663896,
+  "tags": {
+    "ele": "101",
+    "gnis:feature_id": "1500782",
+    "name": "Perfect Point",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 158479738,
+  "lat": 36.6247476,
+  "lon": -78.5564425,
+  "tags": {
+    "ele": "110",
+    "gnis:feature_id": "1492773",
+    "name": "Clarksville",
+    "place": "town",
+    "population": "1329",
+    "wikidata": "Q1095896",
+    "wikipedia": "en:Clarksville, Virginia"
+  }
+},
+{
+  "type": "node",
+  "id": 158505734,
+  "lat": 36.7993418,
+  "lon": -78.4585771,
+  "tags": {
+    "ele": "174",
+    "gnis:feature_id": "1464752",
+    "name": "Chase City",
+    "place": "town",
+    "population": "2356",
+    "population:date": "2006",
+    "source:population": "US Census",
+    "wikidata": "Q1376427",
+    "wikipedia": "en:Chase City, Virginia"
+  }
+},
+{
+  "type": "node",
+  "id": 158563447,
+  "lat": 36.6673066,
+  "lon": -78.3882002,
+  "tags": {
+    "capital": "6",
+    "ele": "108",
+    "gnis:feature_id": "1498456",
+    "name": "Boydton",
+    "place": "village",
+    "population": "256",
+    "wikidata": "Q1376432",
+    "wikipedia": "en:Boydton, Virginia"
+  }
+},
+{
+  "type": "node",
+  "id": 158582118,
+  "lat": 36.6156966,
+  "lon": -78.5438890,
+  "tags": {
+    "ele": "106",
+    "gnis:feature_id": "1500752",
+    "name": "Mill Village",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 158620018,
+  "lat": 36.7265449,
+  "lon": -78.1291308,
+  "tags": {
+    "ele": "142",
+    "gnis:feature_id": "1474872",
+    "name": "South Hill",
+    "place": "town",
+    "population": "4608",
+    "population:date": "2006",
+    "source:population": "US Census",
+    "wikidata": "Q971907",
+    "wikipedia": "en:South Hill, Virginia"
+  }
+},
+{
+  "type": "node",
+  "id": 1942856109,
+  "lat": 35.2049755,
+  "lon": -80.8226932,
+  "tags": {
+    "name": "Crescent Heights",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 1943141725,
+  "lat": 35.1819586,
+  "lon": -80.8189571,
+  "tags": {
+    "name": "Lionsgate",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 1943143611,
+  "lat": 35.1879914,
+  "lon": -80.8205664,
+  "tags": {
+    "name": "Pharr Acres",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 1943143615,
+  "lat": 35.1846331,
+  "lon": -80.8236670,
+  "tags": {
+    "name": "Briarcliff",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 2223541049,
+  "lat": 35.2469940,
+  "lon": -80.8057768,
+  "tags": {
+    "name": "NoDa",
+    "place": "suburb",
+    "source": "local_knowledge",
+    "wikidata": "Q7043910",
+    "wikipedia": "en:NoDa (Charlotte neighborhood)"
+  }
+},
+{
+  "type": "node",
+  "id": 4780150588,
+  "lat": 35.2125930,
+  "lon": -80.8588314,
+  "tags": {
+    "name": "South End",
+    "place": "suburb",
+    "wikidata": "Q7567181"
+  }
+},
+{
+  "type": "node",
+  "id": 4787344728,
+  "lat": 35.1873366,
+  "lon": -80.8801147,
+  "tags": {
+    "name": "York Road",
+    "place": "suburb",
+    "wikidata": "Q108899644",
+    "wikipedia": "en:York Road (Charlotte neighborhood)"
+  }
+},
+{
+  "type": "node",
+  "id": 4787344729,
+  "lat": 35.1869231,
+  "lon": -80.8674825,
+  "tags": {
+    "name": "Colonial Village",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 4950081400,
+  "lat": 35.0219716,
+  "lon": -80.8562199,
+  "tags": {
+    "name": "Bridgehampton Club",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 5043640787,
+  "lat": 35.1377909,
+  "lon": -80.9331441,
+  "tags": {
+    "description": "Mixed-use development, in Steele Creek.",
+    "name": "Ayrsley",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 7402919289,
+  "lat": 35.0546593,
+  "lon": -80.8502463,
+  "tags": {
+    "ele": "207",
+    "name": "Ballantyne",
+    "place": "suburb",
+    "population": "70582",
+    "wikidata": "Q4851439"
+  }
+},
+{
+  "type": "node",
+  "id": 7608500407,
+  "lat": 35.1735254,
+  "lon": -80.6570586,
+  "tags": {
+    "name": "Downtown",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 7837347423,
+  "lat": 35.2135699,
+  "lon": -80.8349223,
+  "tags": {
+    "name": "Midtown",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 7890794335,
+  "lat": 35.3448504,
+  "lon": -80.8240274,
+  "tags": {
+    "name": "Croft",
+    "place": "suburb",
+    "population": "9000",
+    "wikidata": "Q19461215",
+    "wikipedia": "en:Croft Historic District"
+  }
+},
+{
+  "type": "node",
+  "id": 7890803931,
+  "lat": 35.3323132,
+  "lon": -80.7859668,
+  "tags": {
+    "name": "Mallard",
+    "place": "suburb",
+    "population": "15500",
+    "wikidata": "Q106498617",
+    "wikipedia": "en:Mallard (Charlotte neighborhood)"
+  }
+},
+{
+  "type": "node",
+  "id": 7891468799,
+  "lat": 35.3486711,
+  "lon": -80.8525353,
+  "tags": {
+    "name": "Northlake",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 7918848247,
+  "lat": 35.3002235,
+  "lon": -80.8275692,
+  "tags": {
+    "name": "Nevin",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 7932309332,
+  "lat": 35.2891998,
+  "lon": -80.7873152,
+  "tags": {
+    "name": "Mineral Springs",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 7939258313,
+  "lat": 35.2271740,
+  "lon": -80.8430828,
+  "tags": {
+    "name": "Uptown",
+    "place": "suburb",
+    "wikidata": "Q5086205",
+    "wikipedia": "en:Uptown Charlotte"
+  }
+},
+{
+  "type": "node",
+  "id": 7939367284,
+  "lat": 35.2088208,
+  "lon": -80.7513256,
+  "tags": {
+    "name": "Eastland",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 7939564922,
+  "lat": 35.3325900,
+  "lon": -80.9380706,
+  "tags": {
+    "name": "Mountain Island Village",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 7940303063,
+  "lat": 35.1112572,
+  "lon": -80.9152458,
+  "tags": {
+    "name": "Nations Ford",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 7940322358,
+  "lat": 35.0336688,
+  "lon": -80.8054305,
+  "tags": {
+    "name": "Blakeney",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 7940352277,
+  "lat": 35.2096200,
+  "lon": -80.8321134,
+  "tags": {
+    "name": "Cherry",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 7940372129,
+  "lat": 35.1645610,
+  "lon": -80.8644817,
+  "tags": {
+    "name": "Madison Park",
+    "place": "suburb",
+    "wikidata": "Q96391395",
+    "wikipedia": "en:Madison Park (Charlotte neighborhood)"
+  }
+},
+{
+  "type": "node",
+  "id": 7940382680,
+  "lat": 35.1583496,
+  "lon": -80.8455852,
+  "tags": {
+    "name": "Parkdale",
+    "place": "suburb",
+    "wikidata": "Q7138208",
+    "wikipedia": "en:Parkdale (Charlotte neighborhood)"
+  }
+},
+{
+  "type": "node",
+  "id": 7940561274,
+  "lat": 35.1364479,
+  "lon": -80.9777786,
+  "tags": {
+    "name": "Steele Creek",
+    "place": "suburb",
+    "population": "76301",
+    "population:date": "2020",
+    "source:population": "wikipedia",
+    "wikidata": "Q14708177",
+    "wikipedia": "en:Steele Creek, North Carolina"
+  }
+},
+{
+  "type": "node",
+  "id": 7940763697,
+  "lat": 35.3154076,
+  "lon": -80.8543251,
+  "tags": {
+    "name": "Hyde Park Estates",
+    "place": "neighbourhood",
+    "wikidata": "Q122552981"
+  }
+},
+{
+  "type": "node",
+  "id": 7940763698,
+  "lat": 35.3229079,
+  "lon": -80.8587166,
+  "tags": {
+    "name": "Bahama Park",
+    "place": "neighbourhood",
+    "wikidata": "Q122562704"
+  }
+},
+{
+  "type": "node",
+  "id": 7940763699,
+  "lat": 35.3120824,
+  "lon": -80.8035242,
+  "tags": {
+    "name": "Lynn Lee",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 7942857163,
+  "lat": 35.2841784,
+  "lon": -80.8355096,
+  "tags": {
+    "name": "Wilson Heights",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 7944058443,
+  "lat": 35.2390373,
+  "lon": -80.7871871,
+  "tags": {
+    "name": "Plaza Shamrock",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 7944073441,
+  "lat": 35.2605014,
+  "lon": -80.6952546,
+  "tags": {
+    "name": "Reedy Creek",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 7946647054,
+  "lat": 35.2615429,
+  "lon": -80.8467774,
+  "tags": {
+    "name": "Lincoln Heights",
+    "note": "The neighborhood is part of an area of Charlotte called \"West End.\"",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 7947040249,
+  "lat": 35.2310833,
+  "lon": -80.8840532,
+  "tags": {
+    "name": "Camp Greene",
+    "place": "neighbourhood",
+    "wikidata": "Q3651658",
+    "wikipedia": "en:Camp Greene"
+  }
+},
+{
+  "type": "node",
+  "id": 7947059759,
+  "lat": 35.2109472,
+  "lon": -80.9033051,
+  "tags": {
+    "name": "Reid Park",
+    "place": "suburb",
+    "wikidata": "Q28457794",
+    "wikipedia": "en:Reid Park (Charlotte neighborhood)"
+  }
+},
+{
+  "type": "node",
+  "id": 7947077797,
+  "lat": 35.2624186,
+  "lon": -80.8737628,
+  "tags": {
+    "name": "Oakview Terrace",
+    "note": "The neighborhood is part of an area of Charlotte called \"West End.\"",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 7947175751,
+  "lat": 35.4435194,
+  "lon": -80.8820030,
+  "tags": {
+    "name": "Birkdale",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 7947199162,
+  "lat": 35.4072602,
+  "lon": -80.8626624,
+  "tags": {
+    "name": "Rosedale",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 7967144479,
+  "lat": 35.4107800,
+  "lon": -80.8429791,
+  "tags": {
+    "name": "Downtown",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 7972354737,
+  "lat": 35.3118630,
+  "lon": -80.8094146,
+  "tags": {
+    "name": "Graceshire",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 7982555901,
+  "lat": 35.4992273,
+  "lon": -80.8484612,
+  "tags": {
+    "name": "Downtown",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 7982568632,
+  "lat": 35.4816430,
+  "lon": -80.8590296,
+  "tags": {
+    "name": "Downtown",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 8022902752,
+  "lat": 35.2557439,
+  "lon": -80.8602626,
+  "tags": {
+    "name": "Washington Heights",
+    "note": "The neighborhood is part of an area of Charlotte called \"West End.\"",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 8022906017,
+  "lat": 35.2161559,
+  "lon": -80.8837485,
+  "tags": {
+    "name": "Revolution Park",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 8022962570,
+  "lat": 35.2643493,
+  "lon": -80.8630861,
+  "tags": {
+    "name": "University Park",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 8070689072,
+  "lat": 35.1735388,
+  "lon": -80.6570377,
+  "tags": {
+    "name": "Mint Hill",
+    "place": "town",
+    "wikidata": "Q2030900",
+    "wikipedia": "en:Mint Hill, North Carolina"
+  }
+},
+{
+  "type": "node",
+  "id": 8105086007,
+  "lat": 35.2487051,
+  "lon": -80.8513883,
+  "tags": {
+    "name": "McCrorey Heights",
+    "note": "The neighborhood is part of an area of Charlotte called \"West End.\"",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 8105086008,
+  "lat": 35.2544308,
+  "lon": -80.8500794,
+  "tags": {
+    "name": "Oaklawn",
+    "note": "The neighborhood is part of an area of Charlotte called \"West End.\"",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 8443247764,
+  "lat": 35.2833128,
+  "lon": -80.8192863,
+  "tags": {
+    "name": "Derita",
+    "place": "suburb",
+    "wikidata": "Q5262602"
+  }
+},
+{
+  "type": "node",
+  "id": 8443273629,
+  "lat": 35.2336921,
+  "lon": -80.8426660,
+  "tags": {
+    "is_in:suburb": "Uptown",
+    "name": "Fourth Ward",
+    "place": "quarter"
+  }
+},
+{
+  "type": "node",
+  "id": 8443273630,
+  "lat": 35.2330336,
+  "lon": -80.8500032,
+  "tags": {
+    "name": "Gateway",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 8443273631,
+  "lat": 35.2282895,
+  "lon": -80.8501389,
+  "tags": {
+    "is_in:suburb": "Uptown",
+    "name": "Third Ward",
+    "place": "quarter"
+  }
+},
+{
+  "type": "node",
+  "id": 8443273632,
+  "lat": 35.2212765,
+  "lon": -80.8425512,
+  "tags": {
+    "is_in:suburb": "Uptown",
+    "name": "Second Ward",
+    "place": "quarter"
+  }
+},
+{
+  "type": "node",
+  "id": 8443273633,
+  "lat": 35.2268301,
+  "lon": -80.8346646,
+  "tags": {
+    "is_in:suburb": "Uptown",
+    "name": "First Ward",
+    "place": "quarter"
+  }
+},
+{
+  "type": "node",
+  "id": 8525797305,
+  "lat": 35.1999593,
+  "lon": -80.7914209,
+  "tags": {
+    "name": "Echo Hills",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 8975850958,
+  "lat": 35.0651599,
+  "lon": -80.8841827,
+  "tags": {
+    "name": "Carolina Village",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 9127601444,
+  "lat": 35.2090058,
+  "lon": -80.8710683,
+  "tags": {
+    "name": "Brookhill",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 9168204736,
+  "lat": 35.2038235,
+  "lon": -80.7975788,
+  "tags": {
+    "name": "Coliseum Drive",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 9836149420,
+  "lat": 35.1167417,
+  "lon": -80.7216924,
+  "tags": {
+    "name": "Matthews Commercial Historic District",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 11445323165,
+  "lat": 35.1841065,
+  "lon": -80.9145517,
+  "tags": {
+    "name": "City Park",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 11914399009,
+  "lat": 35.3213552,
+  "lon": -80.8336792,
+  "tags": {
+    "name": "Mineral Springs Park",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 11914399018,
+  "lat": 35.3219849,
+  "lon": -80.8312181,
+  "tags": {
+    "name": "Henderson Manor",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 11914399019,
+  "lat": 35.3272136,
+  "lon": -80.8345057,
+  "tags": {
+    "name": "Henderson Oaks",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12170359288,
+  "lat": 35.1413684,
+  "lon": -81.0088520,
+  "tags": {
+    "name": "Chapel Cove",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12173991704,
+  "lat": 35.1380674,
+  "lon": -81.0294147,
+  "tags": {
+    "name": "The Sanctuary",
+    "place": "neighbourhood",
+    "website": "https://thesanctuaryatlakewylie.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 12372519375,
+  "lat": 35.1782997,
+  "lon": -80.7841095,
+  "tags": {
+    "name": "Mason Oaks",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 13585257535,
+  "lat": 35.2364249,
+  "lon": -80.8229142,
+  "tags": {
+    "name": "Optimist Park",
+    "place": "suburb"
+  }
+}
+
+  ]
+}

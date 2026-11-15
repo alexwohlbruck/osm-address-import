@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.DS_Store
+*.tmp
+
+# per-machine import progress and downloaded data
+blocks/out/
+blocks/state.json
+blocks/ledger.json
+blocks/config.json
+blocks/network.json
+blocks/overview_*.png
+out/

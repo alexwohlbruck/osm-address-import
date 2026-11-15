@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en" class="sl-theme-light">
+<head>
+<meta charset="utf-8">
+<title>Mecklenburg address import</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://rsms.me">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/light.css">
+<script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace-autoloader.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo"><sl-icon name="signpost-split-fill"></sl-icon></span>
+    <div>
+      <div class="title">Address import</div>
+      <div class="subtitle">Mecklenburg County → OpenStreetMap</div>
+    </div>
+  </div>
+  <div class="overall">
+    <div id="progress" class="progress"></div>
+    <div id="progress-text" class="progress-text"></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="top-actions">
+    <sl-tooltip content="Undo (⌘Z)"><sl-icon-button id="undo-btn" name="arrow-counterclockwise" label="Undo"></sl-icon-button></sl-tooltip>
+    <sl-tooltip content="Redo (⇧⌘Z)"><sl-icon-button id="redo-btn" name="arrow-clockwise" label="Redo"></sl-icon-button></sl-tooltip>
+    <span class="vsep"></span>
+    <sl-tooltip id="josm-tip" content="Checking JOSM remote control…"><span id="josm-status" class="josm"><i></i>JOSM</span></sl-tooltip>
+    <sl-tooltip content="Keyboard shortcuts (?)"><sl-icon-button id="keys-btn" name="keyboard" label="Keyboard shortcuts"></sl-icon-button></sl-tooltip>
+    <sl-tooltip content="Settings"><sl-icon-button id="settings-btn" name="gear" label="Settings"></sl-icon-button></sl-tooltip>
+  </div>
+</header>
+
+<main>
+  <aside id="sidebar">
+    <div class="sb-section">
+      <div class="gen-row">
+        <sl-button id="gen-next" variant="primary" size="small"><sl-icon slot="prefix" name="lightning-charge-fill"></sl-icon>Generate next</sl-button>
+        <sl-input id="gen-n" type="number" size="small" min="1" max="50" value="5" no-spin-buttons></sl-input>
+        <span class="muted">pending blocks</span>
+      </div>
+      <div id="jobs" class="jobs hidden">
+        <div class="jobs-head">
+          <sl-spinner id="jobs-spin"></sl-spinner>
+          <span id="jobs-head"></span>
+          <sl-button id="jobs-cancel" size="small" variant="text">Cancel queue</sl-button>
+        </div>
+        <pre id="jobs-log"></pre>
+      </div>
+    </div>
+    <div class="sb-section filters">
+      <sl-input id="search" size="small" placeholder="Search block, neighborhood, road…" clearable>
+        <sl-icon slot="prefix" name="search"></sl-icon>
+      </sl-input>
+      <div id="status-filters" class="chips"></div>
+    </div>
+    <div class="list-head"><span id="list-count"></span></div>
+    <div id="block-list" class="block-list"></div>
+  </aside>
+
+  <section id="map-wrap">
+    <div id="map"></div>
+    <div class="map-card">
+      <div class="mc-row">
+        <sl-switch id="show-changes" size="small" checked>Changes <kbd>c</kbd></sl-switch>
+        <sl-switch id="show-blocks" size="small" checked>Blocks</sl-switch>
+      </div>
+      <sl-radio-group id="basemap" size="small" value="light">
+        <sl-radio-button value="light">Light</sl-radio-button>
+        <sl-radio-button value="osm">OSM</sl-radio-button>
+        <sl-radio-button value="sat">Satellite</sl-radio-button>
+      </sl-radio-group>
+      <div class="legend">
+        <span><i class="sw tagged"></i>Building tagged</span>
+        <span><i class="sw node"></i>New point</span>
+        <span><i class="sw corrected"></i>Corrected</span>
+        <span><i class="sw poi"></i>On POI</span>
+        <span><i class="sw review"></i>Review</span>
+      </div>
+    </div>
+  </section>
+
+  <aside id="detail" class="hidden"></aside>
+</main>
+
+<sl-dialog id="settings" label="Settings">
+  <div class="form">
+    <sl-input id="cfg-wiki" type="url" label="Import wiki page" help-text="Goes into the url= changeset tag" placeholder="https://wiki.openstreetmap.org/wiki/…"></sl-input>
+    <sl-input id="cfg-user" label="OSM username that uploads" help-text="Used to detect which blocks were uploaded" placeholder="e.g. yourname_imports"></sl-input>
+    <sl-input id="cfg-args" label="Extra conflate.py arguments" help-text="Applies to blocks generated from now on" placeholder="--unmatched review --snap 3"></sl-input>
+  </div>
+  <sl-button slot="footer" id="cfg-cancel" variant="text">Cancel</sl-button>
+  <sl-button slot="footer" id="cfg-save" variant="primary">Save</sl-button>
+</sl-dialog>
+
+<sl-dialog id="render-dlg" label="Before / after" class="wide">
+  <img id="render-img" alt="before/after render">
+</sl-dialog>
+
+<sl-dialog id="ask-dlg" label="">
+  <div id="ask-body"></div>
+  <sl-input id="ask-input" class="hidden"></sl-input>
+  <sl-button slot="footer" id="ask-cancel" variant="text">Cancel</sl-button>
+  <sl-button slot="footer" id="ask-ok" variant="primary">OK</sl-button>
+</sl-dialog>
+
+<sl-dialog id="keys-dlg" label="Keyboard shortcuts">
+  <div class="keys">
+    <h5>Reviewing</h5>
+    <div><kbd>j</kbd> <kbd>↓</kbd><span>Next change</span></div>
+    <div><kbd>k</kbd> <kbd>↑</kbd><span>Previous change</span></div>
+    <div><kbd>a</kbd><span>Approve (review items: confirm the default)</span></div>
+    <div><kbd>1</kbd>–<kbd>9</kbd><span>Apply a suggested fix (review items)</span></div>
+    <div><kbd>r</kbd><span>Reject / skip</span></div>
+    <div><kbd>u</kbd><span>Clear decision or fix</span></div>
+    <div><kbd>e</kbd><span>Edit tags</span></div>
+    <div><kbd>⌘</kbd> <kbd>↵</kbd><span>Save tags</span></div>
+    <div><kbd>Esc</kbd><span>Close change, then block</span></div>
+    <h5>Everywhere</h5>
+    <div><kbd>⌘</kbd> <kbd>Z</kbd><span>Undo</span></div>
+    <div><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>Z</kbd><span>Redo</span></div>
+    <div><kbd>/</kbd><span>Search changes</span></div>
+    <div><kbd>c</kbd><span>Show / hide changes on map</span></div>
+    <div><kbd>s</kbd><span>Satellite view on / off</span></div>
+    <div><kbd>n</kbd><span>Next ready block</span></div>
+    <div><kbd>?</kbd><span>This list</span></div>
+  </div>
+</sl-dialog>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
