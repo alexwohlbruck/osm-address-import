@@ -153,6 +153,8 @@ sl-dialog.wide img { width: 100%; display: block; border-radius: 8px; }
 .keys h5:first-child { margin-top: 0; }
 .keys div { display: flex; align-items: center; gap: 4px; }
 .keys div span { margin-left: 10px; color: var(--text-2); }
+/* toasts start below the top bar (which sits above everything else) */
+.sl-toast-stack { top: 56px; z-index: 1100; }
 .sl-toast-stack sl-alert::part(base) { box-shadow: var(--shadow-2); }
 
 /* --- block panel ---------------------------------------------------------------------- */

@@ -1195,7 +1195,10 @@ function skipItem(it) {
 /** Apply a suggested fix; "keep one" options also drop the duplicates. One undo step. */
 async function applyOption(it, o) {
   if (!o.target && !o.ignore) return saveFix(it, o.fix);
-  const cids = [o.target, ...o.ignore];
+  const also = o.also || [];
+  // ignored duplicates first so the kept fix doesn't clash with them, then the target, then
+  // items the same fix settles (they get the same fix, so they resolve together)
+  const cids = [...o.ignore, o.target, ...also];
   const before = cids.map((c) => { const x = P.items.find((y) => y.cid === c); return [c, x.p.fix ? structuredClone(x.p.fix) : null, x.p.decision || null]; });
   const run = async (state) => {
     for (const [c, fix, dec] of state) {
@@ -1205,12 +1208,28 @@ async function applyOption(it, o) {
     }
     return true;
   };
-  const after = cids.map((c) => c === o.target ? [c, o.fix, "resolved"] : [c, null, "ignored"]);
-  // drop the duplicates' fixes first so the kept one doesn't clash with them
-  if (!(await run([...after.slice(1), after[0]]))) return;
+  const after = cids.map((c) => c === o.target || also.includes(c) ? [c, o.fix, "resolved"] : [c, null, "ignored"]);
+  if (!(await run(after))) return;
   inspect(it.cid, false);
   record({ block: P.id, cid: it.cid, label: `${o.title} (${it.p.county_address})`,
-    undo: () => run(before), redo: () => run([...after.slice(1), after[0]]) });
+    undo: () => run([...before].reverse()), redo: () => run(after) });
+}
+
+/** Offset review items whose OSM building holds the number `tags` wants, following the shift
+ *  along the row (724 is on the building the source calls 720, whose 720 is on 716's, ...). */
+function offsetChain(it, tags) {
+  const out = [], seen = new Set([it.cid]);
+  let want = tags;
+  while (want && out.length < 20) {
+    const key = normAddr(addrLine(want));
+    const x = P.items.find((y) => y.review && !seen.has(y.cid) && y.p.reason === "osm_address_offset_from_county"
+      && y.p.county_tags && y.p.objects?.[y.p.osm] && normAddr(y.p.osm_address) === key);
+    if (!x) break;
+    seen.add(x.cid);
+    out.push(x);
+    want = x.p.county_tags;
+  }
+  return out;
 }
 
 /** One-click fixes for a review item, most likely first. */
@@ -1232,7 +1251,15 @@ function fixOptions(it) {
     const other = p.osm_number_building && objs[p.osm_number_building];
     if (other) objects[p.osm_number_building] = withAddr(other.tags, p.osm_number_county_tags);
     else if (p.osm_number_county_at && p.osm_number_county_tags) points.push(point(p.osm_number_county_tags, p.osm_number_county_at));
-    add({ title: `This building is ${cHn}`, desc: `OSM had the wrong number. ${main} becomes ${addrLine(ct)}; ${osmHn} ${other ? `goes on ${p.osm_number_building}` : `becomes a point where the ${SRC} has it`}.`, fix: { objects, points } });
+    // a row shifted by one lot: the number this building should get is on the next building in
+    // OSM, which is itself an offset item. Renumber the whole chain in one fix.
+    const chain = offsetChain(it, ct);
+    for (const x of chain) objects[x.p.osm] = withAddr(x.p.objects[x.p.osm].tags, x.p.county_tags);
+    const chainTxt = chain.map((x) => `${x.p.osm} (${hnOf(x.p.osm_address)} → ${hnOf(x.p.county_address)})`).join(", ");
+    add({ title: chain.length ? `Renumber the row: this building is ${cHn}` : `This building is ${cHn}`,
+      desc: `OSM had the wrong number. ${main} becomes ${addrLine(ct)}; ${osmHn} ${other ? `goes on ${p.osm_number_building}` : `becomes a point where the ${SRC} has it`}.`
+        + (chain.length ? ` ${cHn} is on the next building in OSM, which is shifted too, so it's renumbered as well: ${chainTxt}.` : ""),
+      fix: { objects, points }, ...(chain.length ? { target: it.cid, ignore: [], also: chain.map((x) => x.cid) } : {}) });
     add({ title: `This building has both ${osmHn} and ${cHn}`, desc: `A duplex or similar: ${main} gets addr:housenumber=${osmHn};${cHn}.`,
       fix: { objects: { [main]: withAddr(objs[main].tags, { ...ct, "addr:housenumber": `${osmHn};${cHn}` }) }, points: [] } });
     add({ title: `Keep ${osmHn}, add ${cHn} as a point`, desc: `Leaves the building as it is and puts ${addrLine(ct)} on a point at the ${SRC} location.`, fix: { objects: {}, points: [point(ct)] } });
@@ -1443,7 +1470,7 @@ async function saveFix(it, fix, silent = false) {
   const j = await r.json();
   if (!r.ok) {
     const msg = j.error === "duplicate"
-      ? `Not saved: that address already exists on ${j.clashes.map((c) => /^(node|way|relation)\//.test(c) ? osmLinks(c) : esc(c)).join(", ")}. The import never adds duplicates.`
+      ? `Not saved: that address already exists on ${j.clashes.map((c) => /^(node|way|relation)\//.test(c) ? osmLinks(c) : esc(c)).join(", ")}. The import never adds duplicates. If that one is wrong too, fix it first (or change both with Edit by hand), then try again.`
       : esc(j.error);
     if ($("#fx-err")) { $("#fx-err").innerHTML = `<sl-alert variant="danger" open class="banner"><sl-icon slot="icon" name="exclamation-octagon"></sl-icon>${msg}</sl-alert>`; P.fxOpen = true; }
     toast(msg, true);
