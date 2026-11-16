@@ -1,6 +1,65 @@
-# Mecklenburg address → OSM building conflation
+# OSM address import
 
-    ./conflate.py --bbox=-80.87,35.43,-80.85,35.445 --out out/huntersville --cache
+Tools for importing an authoritative address dataset (a county's or city's
+address points) into OpenStreetMap, following the
+[import guidelines](https://wiki.openstreetmap.org/wiki/Import/Guidelines):
+addresses are put on the buildings they fall in, matched against what OSM already
+has, cut into small blocks, reviewed in a local web app and uploaded by you from
+JOSM. Nothing is ever uploaded automatically.
+
+It started as the Mecklenburg County, NC import (`sources/mecklenburg-nc.json`)
+and works with any dataset that can be described by a source file.
+
+## Address sources
+
+A source file in `sources/` (this one is an illustration) says where the points come from and how their fields
+map onto `addr:*` tags:
+
+```json
+{
+  "name": "Wake County Address Points",
+  "short_name": "county",
+  "changeset": {"source": "Wake County GIS", "comment": "Add addresses from Wake County address points"},
+  "area": {"relation": 1234567, "center": [-78.6382, 35.7796], "center_name": "Downtown"},
+  "fetch": {"type": "arcgis", "url": "https://.../FeatureServer/0", "where": "STATUS = 'ACTIVE'"},
+  "fields": {
+    "id": "OBJECTID", "housenumber": "ADDR_NUM", "street": "FULL_STREET", "unit": "UNIT",
+    "postcode": "ZIP", "city": "CITY", "state": {"value": "NC"}
+  },
+  "postcode_digits": 5,
+  "street_types": {"AV": "Avenue"}
+}
+```
+
+- `fetch.type`: `arcgis` (an ArcGIS REST FeatureServer/MapServer layer, queried
+  per block) or `file` (a local GeoJSON, GeoJSON-lines such as an
+  [OpenAddresses](https://batch.openaddresses.io/) download, or a CSV with
+  `"lon"`/`"lat"` column names). See `sources/openaddresses.example.json`.
+- `fields`: source field names, or `{"value": ...}` for a constant. `street` is
+  one field with the full name, or `{"prefix", "name", "type", "suffix"}` fields
+  that get joined. Only `housenumber` and `street` are required; `id` should be
+  a stable record id (review decisions are keyed on it). `filter`
+  (`{"field": "value"}`) keeps only matching records.
+- `short_name` is how the UI refers to the data ("the county point").
+- `area.relation` is the OSM boundary relation of the import area, used to cut
+  blocks; `center` is where block numbering starts (default: inside the
+  boundary).
+- `street_types` adds the source's own street type abbreviations to the USPS
+  ones, so `CR` matches `Circle`. Street names written to OSM always use the
+  spelling of a nearby OSM street; the expanded name is only a fallback.
+
+Start an import with:
+
+    ./blocks.py init sources/your-source.json   # records the source, fetches roads, builds blocks
+    ./webapp/server.py                          # http://127.0.0.1:8765
+
+Each import lives in a project directory (`blocks/` by default). Use
+`--dir imports/raleigh` on both `blocks.py` and `webapp/server.py` to run
+several side by side.
+
+## Conflation (one area)
+
+    ./conflate.py --source sources/mecklenburg-nc.json --bbox=-80.87,35.43,-80.85,35.445 --out out/huntersville --cache
 
 (`--bbox=` with `=` because the value starts with `-`. Requires `uv`.)
 
@@ -10,12 +69,12 @@ Outputs, nothing is uploaded:
 - `out/X_summary.txt`: counts, unmatched street names, OSM spelling suggestions.
 
 Rules:
-- Only county points with StatusCode=A are used.
+- Only records the source's `where` / `filter` selects are used.
 - Street names use the spelling of a nearby OSM highway with the same normalized
   name. If none matches, the point goes to review. Override with `--street-overrides file.csv`.
 - If the same number and street already exist in OSM within 150 m, the point is skipped.
 - 1 address inside a building with no address: tags are added to the building.
-- Units: the county stacks most units of a complex on one point. Those collapse to
+- Units: many sources stack most units of a complex on one point. Those collapse to
   the plain street number. A unit is kept (`addr:unit`) only when it has its own
   point. Then a building holding just that unit gets the unit on the building, and a
   building holding several such units gets one node per unit.
@@ -36,14 +95,14 @@ Rules:
 
 ## Block-by-block import UI
 
-    ./blocks.py build          # once: cut the county into blocks (needs blocks/network.json, places.json)
+    ./blocks.py init sources/X.json   # once: fetch roads and place names, cut the area into blocks
     ./webapp/server.py         # http://127.0.0.1:8765
 
 - The map shows every block, coloured by status. Click a block or a list row to
   see its changes (green = address added to a building, orange = new node,
   red = review). Press `c` to toggle the changes over the OSM map (before/after)
   and `n` to jump to the next ready block.
-- "Generate next N" queues pending blocks in order outward from Uptown. Jobs run
+- "Generate next N" queues pending blocks in order outward from the area centre. Jobs run
   one at a time so Overpass isn't hammered.
 - "Regenerate (fresh data)" re-downloads OSM for that block. Do this right before
   uploading. Blocks generated more than 24 h ago get a warning.
@@ -78,7 +137,7 @@ Click a row or a feature on the map to open it in the inspector:
 The tag table compares the tags that will be uploaded with what OSM has now
 (added / changed / removed), and every value can be edited. An edit that would
 give the object an address that already exists anywhere in the downloaded area
-is refused. New points can be dragged on the map (up to 300 m from the county
+is refused. New points can be dragged on the map (up to 300 m from the source
 point; "Put back" undoes it); existing OSM objects never move. Decisions, edits
 and moves live in `blocks/out/NNNN/decisions.json`, `edits.json` and
 `moves.json` and survive regeneration. Rejected changes are left out of the
@@ -109,11 +168,11 @@ multipolygon) instead; stored as a fix with decision `moved`.
 
 ### Shops and offices (POI merging)
 
-In strip malls and office buildings the county has one point per storefront,
+In strip malls and office buildings the source often has one point per storefront,
 and OSM often already has the businesses as unaddressed POI nodes. Instead of
 adding an address node next to each POI, conflate.py puts the address on the
 POI when the pair is clear-cut: within 25 m, each is the other's nearest, and
-no other county point is nearly as close (`--merge-pois auto`, the default).
+no other source point is nearly as close (`--merge-pois auto`, the default).
 Ambiguous ones are added as nodes, and the UI lists the nearby POIs in the
 node's popup ("Merge into a POI in this building"), so you can pick the right
 one. Rejecting an automatic merge leaves the POI alone and gives the address

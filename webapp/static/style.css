@@ -409,7 +409,7 @@ sl-button.picking::part(base) { border-color: var(--accent); color: var(--accent
 .fix-opt.skip.on > sl-icon { color: var(--text-2); }
 .default { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #8a5a00; background: #fdf0d5;
   border-radius: 4px; padding: 1px 5px; margin-left: 4px; vertical-align: 1px; }
-.chip-new.county { background: #eef0f3; color: var(--text-2); }
+.chip-new.src-pt { background: #eef0f3; color: var(--text-2); }
 .tabs .count.done { background: #e3f5ea; color: #1d7a45; padding: 0 5px; }
 .tabs .count sl-icon { font-size: 10px; vertical-align: -1px; }
 .m-ok { color: var(--ok); }

@@ -11,3 +11,7 @@ blocks/config.json
 blocks/network.json
 blocks/overview_*.png
 out/
+
+# other import projects and local source data
+imports/
+data/

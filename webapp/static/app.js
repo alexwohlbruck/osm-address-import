@@ -1,5 +1,10 @@
 "use strict";
 
+// the import this UI is for (served by /api/project.js): dataset names and map centre
+const PROJECT = window.PROJECT || { short_name: "source" };
+const SRC = PROJECT.short_name || "source";               // "the county point", "the city point", ...
+const SRCC = SRC[0].toUpperCase() + SRC.slice(1);
+
 const STATUS = ["pending", "ready", "nothing_to_do", "uploaded", "skipped", "error"];
 const LABEL = { pending: "Pending", ready: "Ready", nothing_to_do: "Nothing to do", uploaded: "Uploaded", skipped: "Skipped", error: "Error" };
 const COLOR = { pending: "#c9ced6", ready: "#f59e0b", nothing_to_do: "#60a5fa", uploaded: "#16a34a", skipped: "#4ade80", error: "#e03e3e" };
@@ -15,15 +20,15 @@ const REASON = {
   multiple_addresses_in_building: "Several addresses in one building",
   snapped_to_nearby_building: "Snapped to nearby building",
   no_building: "No building",
-  building_address_ambiguous: "Building address doesn't match any county address inside",
-  osm_address_offset_from_county: "OSM number belongs to a neighbouring county point (offset?)",
+  building_address_ambiguous: `Building address doesn't match any ${SRC} address inside`,
+  osm_address_offset_from_county: `OSM number belongs to a neighbouring ${SRC} point (offset?)`,
   would_duplicate_existing: "Would duplicate an existing OSM address",
   would_duplicate_in_changeset: "Would be added twice in this changeset",
   pending_in_other_block: "Already proposed by another block",
-  street_differs_and_not_in_osm: "OSM street differs; county street not in OSM",
+  street_differs_and_not_in_osm: `OSM street differs; ${SRC} street not in OSM`,
   multi_value_housenumber_differs: "Multi-value housenumber differs",
   relation_address_needs_update: "Relation address needs update",
-  osm_address_not_in_county: "OSM address not in county data",
+  osm_address_not_in_county: `OSM address not in ${SRC} data`,
 };
 const STALE_HOURS = 24;
 const JOSM = "http://127.0.0.1:8111";
@@ -45,7 +50,10 @@ let lastDone = 0;
 
 // --- map --------------------------------------------------------------------------
 
-const map = L.map("map", { zoomControl: false, preferCanvas: true }).setView([35.2271, -80.8431], 13);
+const CENTER = PROJECT.center ? [PROJECT.center[1], PROJECT.center[0]] : null;   // [lat, lon]
+const map = L.map("map", { zoomControl: false, preferCanvas: true }).setView(CENTER || [20, 0], CENTER ? 13 : 2);
+document.title = PROJECT.name ? `${PROJECT.name} import` : "Address import";
+document.querySelector(".brand .subtitle").textContent = `${PROJECT.name || "Address data"} → OpenStreetMap`;
 L.control.zoom({ position: "bottomright" }).addTo(map);
 const BASEMAPS = {
   // standard OSM tiles, desaturated so the coloured changes stand out
@@ -93,10 +101,13 @@ const satToggle = new SatToggle().addTo(map);
 function renderSatToggle() {
   const b = satToggle.getContainer();
   const toSat = basemap !== "sat";
-  // preview tile of the target layer around Uptown
+  // preview tile of the target layer around the area centre
+  const c = CENTER || [map.getCenter().lat, map.getCenter().lng];
+  const tx = Math.floor((c[1] + 180) / 360 * 2 ** 15);
+  const ty = Math.floor((1 - Math.log(Math.tan(c[0] * Math.PI / 180) + 1 / Math.cos(c[0] * Math.PI / 180)) / Math.PI) / 2 * 2 ** 15);
   b.style.backgroundImage = toSat
-    ? "url(https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/15/12954/9025)"
-    : "url(https://tile.openstreetmap.org/15/9025/12954.png)";
+    ? `url(https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/15/${ty}/${tx})`
+    : `url(https://tile.openstreetmap.org/15/${tx}/${ty}.png)`;
   b.innerHTML = `<span>${toSat ? "Satellite" : "Map"}</span>`;
   b.title = `${toSat ? "Satellite view" : "Back to the map"} (s)`;
 }
@@ -138,7 +149,7 @@ const GROUPS = [
   { key: "poi", label: "Shops & offices", color: "#0b7f8a", hint: "Addresses put on existing business POIs, or new points next to POIs that need you to pick one." },
   { key: "fill", label: "Postcode, city & state", color: "#8e5cd9", hint: "Existing addresses that get a missing or wrong postcode, city or state." },
   { key: "node", label: "New address points", color: "#c46f12", hint: "Several addresses in one building, or individual units." },
-  { key: "bldg", label: "Buildings tagged", color: "#2e7d4a", hint: "Address added to a building outline that had none and contains exactly one county point. Confident: no review needed." },
+  { key: "bldg", label: "Buildings tagged", color: "#2e7d4a", hint: `Address added to a building outline that had none and contains exactly one ${SRC} point. Confident: no review needed.` },
 ];
 const GROUP = Object.fromEntries(GROUPS.map((g) => [g.key, g]));
 const FILTERS = [["todo", "To do"], ["all", "All"], ["approved", "Approved"], ["rejected", "Rejected"], ["edited", "Edited"]];
@@ -259,7 +270,7 @@ const addrOf = (t) => t && t["addr:housenumber"]
 const finalTags = (p) => p.edit || p.tags || {};
 
 // Changes the conflation is sure about don't need a human look: a building
-// outline with no address that contains exactly one county point (anything
+// outline with no address that contains exactly one source point (anything
 // less certain was held back as a review point instead).
 const isConfident = (p) => p.kind === "tagged_building";
 
@@ -383,7 +394,7 @@ function renderPanel() {
         <span class="spacer"></span>
         <sl-tooltip content="Close (Esc)"><sl-icon-button id="d-close" name="x-lg" label="Close"></sl-icon-button></sl-tooltip>
       </div>
-      <div class="bp-sub" title="${esc(p.roads)} · ${p.area_km2} km² · ${p.dist_km} km from Uptown">${esc(p.roads)}</div>
+      <div class="bp-sub" title="${esc(p.roads)} · ${p.area_km2} km² · ${p.dist_km} km from ${esc(PROJECT.center_name || "the centre")}">${esc(p.roads)}</div>
       <div class="bp-meta">${p.area_km2} km² · ${p.dist_km} km out${p.generated ? ` · generated ${timeAgo(p.generated)}` : ""}</div>
       ${p.status === "uploaded" ? `<sl-alert variant="success" open class="banner"><sl-icon slot="icon" name="cloud-check-fill"></sl-icon>
         <b>Uploaded</b>${p.uploaded ? ` ${new Date(p.uploaded).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}` : ""}${csLink ? ` in ${csLink}` : ""}
@@ -621,19 +632,19 @@ function renderInfo(body) {
     ["Addresses put on shop/office POIs", s.poi_address_merged],
     ["Existing addresses corrected", s.objects_corrected],
     ["Duplicates prevented", s.duplicates_prevented],
-    ["County points already in OSM", s.already_in_osm],
-    ["County points outside any building (skipped)", s.skipped_no_building],
-    ["OSM addresses not in county data (left alone)", s.osm_address_not_in_county],
-    ["County address points in block", s.county_points],
+    [`${SRCC} points already in OSM`, s.already_in_osm],
+    [`${SRCC} points outside any building (skipped)`, s.skipped_no_building],
+    [`OSM addresses not in ${SRC} data (left alone)`, s.osm_address_not_in_county],
+    [`${SRCC} address points in block`, s.county_points],
   ].filter(([, v]) => v);
   const tagsText = Object.entries(d.changeset_tags).map(([k, v]) => `${k}=${v}`).join("\n");
   body.innerHTML = `<div class="info">
-    ${p.status === "pending" && !has("changeset.osm") ? `<div class="hint"><sl-icon name="info-circle"></sl-icon><span>Not generated yet. Generating downloads the county points and OSM data for this block and builds a changeset for you to review. Nothing is uploaded.</span></div>` : ""}
+    ${p.status === "pending" && !has("changeset.osm") ? `<div class="hint"><sl-icon name="info-circle"></sl-icon><span>Not generated yet. Generating downloads the ${SRC} points and OSM data for this block and builds a changeset for you to review. Nothing is uploaded.</span></div>` : ""}
     ${has("changeset_compare.png") ? `<h4>Before / after</h4><img class="thumb" id="a-render" src="/api/blocks/${id}/file/changeset_compare.png?t=${Date.parse(p.generated) || 0}">` : ""}
     ${rows.length ? `<h4>Summary</h4><table class="kv">${rows.map(([k, v]) => `<tr><td>${k}</td><td>${v.toLocaleString()}</td></tr>`).join("")}</table>` : ""}
     ${tagsText ? `<h4>Changeset tags</h4><div class="tags">${esc(tagsText)}<sl-copy-button value="${esc(tagsText)}" copy-label="Copy tags"></sl-copy-button></div>` : ""}
-    ${d.unmatched_streets.length ? `<h4>County streets not found in OSM</h4><div class="hint"><sl-icon name="info-circle"></sl-icon><span>Addresses on these streets were sent to review. If OSM has the right name, add it to a street overrides file.</span></div>
-      <table class="kv">${d.unmatched_streets.map((u) => `<tr><td>${esc(u.county)}${u.suggestion ? `<div class="muted">OSM nearby: ${esc(u.suggestion)}</div>` : ""}</td><td>${u.count}</td></tr>`).join("")}</table>` : ""}
+    ${d.unmatched_streets.length ? `<h4>${SRCC} streets not found in OSM</h4><div class="hint"><sl-icon name="info-circle"></sl-icon><span>Addresses on these streets were sent to review. If OSM has the right name, add it to a street overrides file.</span></div>
+      <table class="kv">${d.unmatched_streets.map((u) => `<tr><td>${esc(u.source)}${u.suggestion ? `<div class="muted">OSM nearby: ${esc(u.suggestion)}</div>` : ""}</td><td>${u.count}</td></tr>`).join("")}</table>` : ""}
   </div>`;
   if ($("#a-render")) $("#a-render").onclick = () => { $("#render-img").src = $("#a-render").src; $("#render-dlg").show(); };
 }
@@ -681,16 +692,16 @@ function showOnMap(it, pan) {
   } else {
     L.geoJSON(it.layer.feature, { pane: "highlight", renderer: highlightRenderer, interactive: false, style: { color: "#4f46e5", weight: 3, fill: false } }).addTo(highlight);
   }
-  // offset reviews: show where the county puts the number OSM has on this building
+  // offset reviews: show where the source puts the number OSM has on this building
   const p = it.p;
   if (p.osm_number_county_at) {
     const other = L.latLng(p.osm_number_county_at[1], p.osm_number_county_at[0]);
     const lbl = (txt, cls) => ({ permanent: true, direction: "top", offset: [0, -8], className: `map-tag ${cls}` });
     L.polyline([ll, other], { pane: "highlight", renderer: highlightRenderer, color: "#4f46e5", weight: 2, dashArray: "5 5", interactive: false }).addTo(highlight);
     L.circleMarker(other, { pane: "highlight", renderer: highlightRenderer, radius: 7, color: "#4f46e5", weight: 2, fillColor: "#fff", fillOpacity: 1, interactive: false })
-      .bindTooltip(`County ${esc((p.osm_address || "").split(" ")[0])}`, lbl("", "other")).addTo(highlight);
+      .bindTooltip(`${SRCC} ${esc((p.osm_address || "").split(" ")[0])}`, lbl("", "other")).addTo(highlight);
     L.circleMarker(ll, { pane: "highlight", renderer: highlightRenderer, radius: 0, opacity: 0, interactive: false })
-      .bindTooltip(`County ${esc((p.county_address || "").split(" ")[0])} · OSM ${esc((p.osm_address || "").split(" ")[0])}`, lbl("", "here")).addTo(highlight);
+      .bindTooltip(`${SRCC} ${esc((p.county_address || "").split(" ")[0])} · OSM ${esc((p.osm_address || "").split(" ")[0])}`, lbl("", "here")).addTo(highlight);
     if (pan) map.fitBounds(L.latLngBounds([ll, other]).pad(1.2), { maxZoom: 19, animate: false });
     return;
   }
@@ -731,11 +742,11 @@ function renderInspector() {
       <div class="insp-kind"><span class="grp-dot" style="background:${meta.color}"></span>${esc(meta.label)}</div>
       <h3 class="insp-title">${esc(title)}</h3>
       <div class="insp-links">
-        ${p.osm ? `<span class="osm-ref"><sl-icon name="box-arrow-up-right"></sl-icon>${osmLinks(p.osm)}</span>` : (it.review ? `<span class="chip-new county"><sl-icon name="geo-alt"></sl-icon>county point</span>` : `<span class="chip-new"><sl-icon name="plus-circle"></sl-icon>new node</span>`)}
+        ${p.osm ? `<span class="osm-ref"><sl-icon name="box-arrow-up-right"></sl-icon>${osmLinks(p.osm)}</span>` : (it.review ? `<span class="chip-new src-pt"><sl-icon name="geo-alt"></sl-icon>${SRC} point</span>` : `<span class="chip-new"><sl-icon name="plus-circle"></sl-icon>new node</span>`)}
         <sl-button size="small" id="i-josm" title="Zoom JOSM here${josmRef ? " and select the object" : ""}"><sl-icon slot="prefix" name="crosshair"></sl-icon>Zoom JOSM</sl-button>
       </div>
       ${p.kind === "new_node" ? `<div class="insp-move">${p.moved
-        ? `<sl-icon name="arrows-move"></sl-icon>Moved ${Math.round(it.layer.getLatLng().distanceTo(L.latLng(p.orig[1], p.orig[0])))} m from the county point <sl-button size="small" variant="text" id="i-unmove">Put back</sl-button>`
+        ? `<sl-icon name="arrows-move"></sl-icon>Moved ${Math.round(it.layer.getLatLng().distanceTo(L.latLng(p.orig[1], p.orig[0])))} m from the ${SRC} point <sl-button size="small" variant="text" id="i-unmove">Put back</sl-button>`
         : `<sl-icon name="arrows-move"></sl-icon><span class="muted">Drag the point on the map to move it</span>`}</div>` : ""}
       ${it.review ? reviewHelp(p) : ""}
       ${it.review ? fixSection(it) : ""}
@@ -756,7 +767,7 @@ function renderInspector() {
 }
 
 // --- putting an auto-tagged address on a different building ---------------------------------
-// The conflation tags the outline the county point falls in. When that is the wrong one (a
+// The conflation tags the outline the source point falls in. When that is the wrong one (a
 // parking deck inside an apartment complex, say), pick the right outline on the map: the
 // original stays as it is in OSM and the address goes on the picked building instead.
 
@@ -822,7 +833,7 @@ function statusLine(it, st) {
   const txt = {
     todo: p.kind === "new_node" && p.poi_candidates?.length ? "Not reviewed: will be added as its own point" : "Not reviewed: included in the changeset",
     approved: "Approved",
-    auto: "Confident: one county point in an outline without an address. Included without review.",
+    auto: `Confident: one ${SRC} point in an outline without an address. Included without review.`,
     rejected: p.kind === "poi_address" ? "Rejected: the POI is left alone and the address gets its own point"
       : p.kind === "corrected" ? "Rejected: the OSM object stays as it is" : "Rejected: left out of the changeset",
     merged: `Will be put on ${p.poi_candidates?.find((c) => `merge:${c.osm}` === p.decision)?.name || "the POI"}`,
@@ -873,42 +884,42 @@ const EXPLAIN = {
     const countyHn = esc((p.county_address || "").split(" ")[0]);
     const duplex = !p.osm_number_building && p.osm_number_dist_m != null && p.osm_number_dist_m < 15;
     return {
-      what: `OSM has this building (${ref(p.osm)}) as ${b(p.osm_address)}, but the county point inside it is ${b(p.county_address)}.
-        The county does have a ${b(osmHn)}, ${p.osm_number_dist_m != null ? `${Math.round(p.osm_number_dist_m)} m away` : "nearby"} (the dashed line on the map).${where}
-        So either OSM put the numbers on the wrong houses, or the county's points are shifted by one lot. The import changed neither.`,
+      what: `OSM has this building (${ref(p.osm)}) as ${b(p.osm_address)}, but the ${SRC} point inside it is ${b(p.county_address)}.
+        The ${SRC} does have a ${b(osmHn)}, ${p.osm_number_dist_m != null ? `${Math.round(p.osm_number_dist_m)} m away` : "nearby"} (the dashed line on the map).${where}
+        So either OSM put the numbers on the wrong houses, or the ${SRC}'s points are shifted by one lot. The import changed neither.`,
       steps: [
         `Compare the two points on the map with the houses. Switch to <b>Satellite</b> (<kbd>s</kbd>), or check house numbers on street-level imagery, if you're not sure which house is which.`,
         `<b>If OSM is wrong</b> (usual): in JOSM select ${ref(p.osm)} and set <code>addr:housenumber=${countyHn}</code>${p.osm_number_building ? `, then check ${ref(p.osm_number_building)} has ${b(osmHn)}` : ""}.`,
         ...(duplex ? [`<b>If it's one building with two addresses</b> (a duplex, say): set <code>addr:housenumber=${esc(osmHn)};${countyHn}</code> on ${ref(p.osm)}, or add each address as a point on its door.`] : []),
-        `<b>If the county is wrong</b>: leave OSM as it is.`,
+        `<b>If the ${SRC} is wrong</b>: leave OSM as it is.`,
         `Then mark it <b>Fixed</b> (<kbd>a</kbd>) or <b>Leave as is</b> (<kbd>r</kbd>).`,
       ],
     };
   },
   building_address_ambiguous: (p) => ({
-    what: `OSM has this building (${ref(p.osm)}) as ${b(p.osm_address)}, but none of the county points inside it match: ${b(p.county_addresses || p.county_address)}. The import can't tell which address is right, so it changed nothing.`,
-    steps: [`Check which address the building really has (imagery, the county points on the map).`,
+    what: `OSM has this building (${ref(p.osm)}) as ${b(p.osm_address)}, but none of the ${SRC} points inside it match: ${b(p.county_addresses || p.county_address)}. The import can't tell which address is right, so it changed nothing.`,
+    steps: [`Check which address the building really has (imagery, the ${SRC} points on the map).`,
       `Fix ${ref(p.osm)} in JOSM if OSM is wrong, or add the missing addresses as points if the building has several.`, `Mark it Fixed or Leave as is.`],
   }),
   street_not_found_in_osm: (p) => ({
-    what: `The county street ${b((p.county_address || "").replace(/^\S+\s/, ""))} doesn't match any street name in OSM near this point${p.osm_suggestion ? `. The closest OSM name is ${b(p.osm_suggestion)}` : ""}. Addresses must use the street's OSM name, so this one was held back.`,
+    what: `The ${SRC} street ${b((p.county_address || "").replace(/^\S+\s/, ""))} doesn't match any street name in OSM near this point${p.osm_suggestion ? `. The closest OSM name is ${b(p.osm_suggestion)}` : ""}. Addresses must use the street's OSM name, so this one was held back.`,
     steps: [p.osm_suggestion ? `If ${b(p.osm_suggestion)} is the same street, add it to the street overrides file and regenerate the block. Every address on that street is then imported.`
       : `Check whether the street is missing or misnamed in OSM. Fix the street name in JOSM if it's wrong.`,
-      `If the county name is the one that's wrong, leave it.`, `Mark it Fixed or Leave as is.`],
+      `If the ${SRC} name is the one that's wrong, leave it.`, `Mark it Fixed or Leave as is.`],
   }),
   building_has_different_address: (p) => ({
-    what: `The county point ${b(p.county_address)} falls in a building that OSM already has as ${b(p.osm_address)}.`,
+    what: `The ${SRC} point ${b(p.county_address)} falls in a building that OSM already has as ${b(p.osm_address)}.`,
     steps: [`Check which is right. Fix it in JOSM if OSM is wrong.`, `Mark it Fixed or Leave as is.`],
   }),
   address_spans_multiple_buildings: (p, it) => {
     const sib = it ? siblings(it) : [];
     if (!sib.length) return {
-      what: `The county has ${b(p.county_address)} in more than one building (${ref(p.osm)} is one of them), so the import can't tell which is right.`,
+      what: `The ${SRC} has ${b(p.county_address)} in more than one building (${ref(p.osm)} is one of them), so the import can't tell which is right.`,
       steps: [] };
     const where = (x) => { const bl = mainBuilding(x); return bl ? `${ref(bl[0])}${bl[1].tags.name ? ` (${esc(bl[1].tags.name)})` : ""}` : "a spot outside any building"; };
     return {
-      what: `The county data has ${b(p.county_address)} ${sib.length + 1} times: here in ${where(it)}, and ${sib.map((x) => `${Math.round(dist(it, x))} m away in ${where(x)}`).join(", ")}.
-        An address exists once, so all but one are duplicates in the county data. Keep the right one; the others are dropped.`,
+      what: `The ${SRC} data has ${b(p.county_address)} ${sib.length + 1} times: here in ${where(it)}, and ${sib.map((x) => `${Math.round(dist(it, x))} m away in ${where(x)}`).join(", ")}.
+        An address exists once, so all but one are duplicates in the ${SRC} data. Keep the right one; the others are dropped.`,
       steps: [] };
   },
   multipolygon_building: (p) => ({
@@ -920,23 +931,23 @@ const EXPLAIN = {
     steps: [`If the point really belongs to the main building next to it, add the address there in JOSM.`, `Otherwise leave it.`],
   }),
   attached_building_points_misaligned: (p) => ({
-    what: `${b(p.county_address)} is in a row of attached buildings (${ref(p.osm)}), and the county points don't line up one-per-unit with the outlines. Tagging them would likely put numbers on the wrong units.`,
+    what: `${b(p.county_address)} is in a row of attached buildings (${ref(p.osm)}), and the ${SRC} points don't line up one-per-unit with the outlines. Tagging them would likely put numbers on the wrong units.`,
     steps: [`Check the row against imagery. In JOSM, tag each unit outline with its number.`, `Mark it Fixed or Leave as is.`],
   }),
   multiple_addresses_in_building: (p) => ({
-    what: `The building ${ref(p.osm)} contains several county addresses, including ${b(p.county_address)}.`,
+    what: `The building ${ref(p.osm)} contains several ${SRC} addresses, including ${b(p.county_address)}.`,
     steps: [`Add the addresses as separate points inside the building in JOSM, if they're real.`, `Mark it Fixed or Leave as is.`],
   }),
   snapped_to_nearby_building: (p) => ({
-    what: `The county point ${b(p.county_address)} isn't inside a building. The nearest outline is ${ref(p.osm)}, but that's a guess.`,
+    what: `The ${SRC} point ${b(p.county_address)} isn't inside a building. The nearest outline is ${ref(p.osm)}, but that's a guess.`,
     steps: [`If that's the right building, add the address to it in JOSM.`, `Mark it Fixed or Leave as is.`],
   }),
   no_building: (p) => ({
-    what: `The county point ${b(p.county_address)} isn't inside or near any building outline in OSM. The building may be missing.`,
+    what: `The ${SRC} point ${b(p.county_address)} isn't inside or near any building outline in OSM. The building may be missing.`,
     steps: [`If there's a building on imagery, draw it in JOSM and add the address.`, `Otherwise leave it.`],
   }),
   osm_address_not_in_county: (p) => ({
-    what: `OSM has ${b(p.osm_address)} on ${ref(p.osm)}, but the county has no such address nearby. It could be a mistake in OSM or a new or unofficial address.`,
+    what: `OSM has ${b(p.osm_address)} on ${ref(p.osm)}, but the ${SRC} has no such address nearby. It could be a mistake in OSM or a new or unofficial address.`,
     steps: [`Check the address. Fix or remove it in JOSM only if you're sure it's wrong.`, `Mark it Fixed or Leave as is.`],
   }),
   would_duplicate_existing: (p) => ({
@@ -952,15 +963,15 @@ const EXPLAIN = {
     steps: [`Nothing to do here. It's reviewed in the other block.`, `Leave as is.`],
   }),
   street_differs_and_not_in_osm: (p) => ({
-    what: `OSM has ${b(p.osm_address)}, but the county says ${b(p.county_address)}, and the county's street name isn't on any OSM street nearby.`,
+    what: `OSM has ${b(p.osm_address)}, but the ${SRC} says ${b(p.county_address)}, and the ${SRC}'s street name isn't on any OSM street nearby.`,
     steps: [`Check which street the building really fronts. Fix the address or the street name in JOSM.`, `Mark it Fixed or Leave as is.`],
   }),
   multi_value_housenumber_differs: (p) => ({
-    what: `OSM has several numbers on ${ref(p.osm)} (${b(p.osm_address)}), and they don't match the county's ${b(p.county_address)}.`,
+    what: `OSM has several numbers on ${ref(p.osm)} (${b(p.osm_address)}), and they don't match the ${SRC}'s ${b(p.county_address)}.`,
     steps: [`Decide whether the building has one address or several. Fix it in JOSM.`, `Mark it Fixed or Leave as is.`],
   }),
   relation_address_needs_update: (p) => ({
-    what: `The address on the relation ${ref(p.osm)} differs from the county in ${b(p.fields || "some fields")}. The import doesn't edit relations automatically.`,
+    what: `The address on the relation ${ref(p.osm)} differs from the ${SRC} in ${b(p.fields || "some fields")}. The import doesn't edit relations automatically.`,
     steps: [`Update the relation's address tags in JOSM.`, `Mark it Fixed or Leave as is.`],
   }),
 };
@@ -976,8 +987,8 @@ function reviewHelp(p) {
 
 function reviewFields(p) {
   const skip = new Set(["kind", "idx", "reason", "cid", "decision", "osm_number_county_at", "osm_number_dist_m"]);
-  const label = { county_address: "County address", county_id: "County ID", proposed_street: "Proposed street", osm: "OSM object",
-    osm_address: "OSM address", county_addresses: "County points inside", osm_suggestion: "OSM street nearby", empty_neighbors: "Empty neighbours",
+  const label = { county_address: `${SRCC} address`, county_id: `${SRCC} ID`, proposed_street: "Proposed street", osm: "OSM object",
+    osm_address: "OSM address", county_addresses: `${SRCC} points inside`, osm_suggestion: "OSM street nearby", empty_neighbors: "Empty neighbours",
     duplicate_of: "Duplicate of", building: "Building type", osm_number_building: "Building at OSM's number", osm_number_building_addr: "Its OSM address" };
   return `<sl-details summary="All details" class="raw"><table class="kv">${Object.entries(p).filter(([k]) => !skip.has(k)).map(([k, v]) =>
     `<tr><td>${esc(label[k] || k)}</td><td>${["osm", "empty_neighbors", "osm_number_building"].includes(k) ? osmLinks(v) : esc(v)}</td></tr>`).join("")}</table></sl-details>`;
@@ -1102,14 +1113,14 @@ function reviewLatLng(it) {
 }
 
 const normAddr = (s) => String(s || "").toUpperCase().replace(/\s+/g, " ").trim();
-/** Other review items in this block for the same county address (county duplicates). */
+/** Other review items in this block for the same source address (source duplicates). */
 function siblings(it) {
   const a = normAddr(it.p.county_address);
   if (!a) return [];
   return P.items.filter((x) => x.review && x.cid !== it.cid && normAddr(x.p.county_address) === a);
 }
 const dist = (x, y) => (x.layer?.getLatLng && y.layer?.getLatLng ? x.layer.getLatLng().distanceTo(y.layer.getLatLng()) : 0);
-/** [ref, object] of the building a review item's county point is in, if any. */
+/** [ref, object] of the building a review item's source point is in, if any. */
 const mainBuilding = (x) => Object.entries(x.p.objects || {}).find(([r, o]) => o.tags.building) || null;
 
 function countyTagsOf(p) {
@@ -1125,7 +1136,7 @@ function inRing(ll, ring) {
   }
   return inside;
 }
-/** Other addresses in a building: its own OSM address, plus county points of other changes and review items inside it. */
+/** Other addresses in a building: its own OSM address, plus source points of other changes and review items inside it. */
 function otherAddressesIn(bl, addr) {
   const ring = bl?.[1].geom?.type === "Polygon" ? bl[1].geom.coordinates[0] : null;
   const out = new Set();
@@ -1140,7 +1151,7 @@ function otherAddressesIn(bl, addr) {
   return [...out];
 }
 
-/** Options that keep one of several county points with the same address and drop the rest.
+/** Options that keep one of several source points with the same address and drop the rest.
  *  Each can be kept on its building or as its own point; a building that holds other
  *  addresses too gets the point first. */
 function keepOneOptions(it) {
@@ -1152,7 +1163,7 @@ function keepOneOptions(it) {
     const where = x === it ? "this one" : `the one ${Math.round(dist(it, x))} m away`;
     const name = bl?.[1].tags.name ? `: ${bl[1].tags.name}` : "";
     const ignore = [it, ...sib].filter((y) => y !== x).map((y) => y.cid);
-    const dropped = `The other county point${sib.length > 1 ? "s are" : " is"} dropped as a duplicate.`;
+    const dropped = `The other ${SRC} point${sib.length > 1 ? "s are" : " is"} dropped as a duplicate.`;
     const others = bl ? otherAddressesIn(bl, x.p.county_address) : [];
     const onBuilding = bl && {
       title: `Keep ${where} on the building${name}`,
@@ -1161,7 +1172,7 @@ function keepOneOptions(it) {
     };
     const asPoint = ll && {
       title: `Keep ${where} as its own point${name}`,
-      desc: `A new point with ${addrLine(ct)} at the county location; ${bl ? "the building isn't changed" : "it isn't inside a building"}. ${dropped}`,
+      desc: `A new point with ${addrLine(ct)} at the ${SRC} location; ${bl ? "the building isn't changed" : "it isn't inside a building"}. ${dropped}`,
       fix: { objects: {}, points: [{ lon: ll[0], lat: ll[1], tags: ct }] }, target: x.cid, ignore,
     };
     const pair = others.length ? [asPoint, onBuilding] : [onBuilding, asPoint];
@@ -1205,7 +1216,7 @@ async function applyOption(it, o) {
 /** One-click fixes for a review item, most likely first. */
 function fixOptions(it) {
   const p = it.p, objs = p.objects || {}, ll = reviewLatLng(it);
-  // blocks generated before county_tags existed: rebuild the basics from the county address
+  // blocks generated before county_tags existed: rebuild the basics from the source address
   const ct = p.county_tags || (p.county_address && p.proposed_street
     ? { "addr:housenumber": hnOf(p.county_address), "addr:street": p.proposed_street } : null);
   const main = (p.osm || "").split(",")[0];
@@ -1221,13 +1232,13 @@ function fixOptions(it) {
     const other = p.osm_number_building && objs[p.osm_number_building];
     if (other) objects[p.osm_number_building] = withAddr(other.tags, p.osm_number_county_tags);
     else if (p.osm_number_county_at && p.osm_number_county_tags) points.push(point(p.osm_number_county_tags, p.osm_number_county_at));
-    add({ title: `This building is ${cHn}`, desc: `OSM had the wrong number. ${main} becomes ${addrLine(ct)}; ${osmHn} ${other ? `goes on ${p.osm_number_building}` : "becomes a point where the county has it"}.`, fix: { objects, points } });
+    add({ title: `This building is ${cHn}`, desc: `OSM had the wrong number. ${main} becomes ${addrLine(ct)}; ${osmHn} ${other ? `goes on ${p.osm_number_building}` : `becomes a point where the ${SRC} has it`}.`, fix: { objects, points } });
     add({ title: `This building has both ${osmHn} and ${cHn}`, desc: `A duplex or similar: ${main} gets addr:housenumber=${osmHn};${cHn}.`,
       fix: { objects: { [main]: withAddr(objs[main].tags, { ...ct, "addr:housenumber": `${osmHn};${cHn}` }) }, points: [] } });
-    add({ title: `Keep ${osmHn}, add ${cHn} as a point`, desc: `Leaves the building as it is and puts ${addrLine(ct)} on a point at the county location.`, fix: { objects: {}, points: [point(ct)] } });
+    add({ title: `Keep ${osmHn}, add ${cHn} as a point`, desc: `Leaves the building as it is and puts ${addrLine(ct)} on a point at the ${SRC} location.`, fix: { objects: {}, points: [point(ct)] } });
   }
   if (p.reason === "street_not_found_in_osm" && ct && ll) {
-    if (p.osm_suggestion) add({ title: `Add it on ${p.osm_suggestion}`, desc: `Uses the OSM street name instead of the county's ${(p.county_address || "").replace(/^\S+\s/, "")}.`,
+    if (p.osm_suggestion) add({ title: `Add it on ${p.osm_suggestion}`, desc: `Uses the OSM street name instead of the ${SRC}'s ${(p.county_address || "").replace(/^\S+\s/, "")}.`,
       fix: { objects: {}, points: [point({ ...ct, "addr:street": p.osm_suggestion })] } });
   }
   if (p.reason === "osm_address_not_in_county" && objs[main]) {
@@ -1238,9 +1249,9 @@ function fixOptions(it) {
       if (ref.startsWith("node/") && !o.tags.building) continue;
       const has = o.tags["addr:housenumber"];
       add({ title: has ? `Replace ${addrLine(o.tags)} with ${addrLine(ct)}` : `Put ${addrLine(ct)} on ${o.tags.building ? "the building" : ref}`,
-        desc: `${ref}${o.tags.building ? ` (building=${o.tags.building})` : ""} gets the county address.`, fix: { objects: { [ref]: withAddr(o.tags, ct) }, points: [] } });
+        desc: `${ref}${o.tags.building ? ` (building=${o.tags.building})` : ""} gets the ${SRC} address.`, fix: { objects: { [ref]: withAddr(o.tags, ct) }, points: [] } });
     }
-    if (ll) add({ title: `Add ${addrLine(ct)} as a point`, desc: `A new address point at the county location. You can move it on the map.`, fix: { objects: {}, points: [point(ct)] } });
+    if (ll) add({ title: `Add ${addrLine(ct)} as a point`, desc: `A new address point at the ${SRC} location. You can move it on the map.`, fix: { objects: {}, points: [point(ct)] } });
   }
   return opts;
 }
@@ -1267,7 +1278,7 @@ function skipOption(it) {
     osm_address_not_in_county: "Leave OSM as it is",
   }[p.reason] || "Skip it";
   const desc = {
-    would_duplicate_existing: `Nothing is uploaded for this county point.${/^(node|way|relation)\//.test(dup) ? ` ${dup} keeps its address.` : ""}`,
+    would_duplicate_existing: `Nothing is uploaded for this ${SRC} point.${/^(node|way|relation)\//.test(dup) ? ` ${dup} keeps its address.` : ""}`,
     osm_address_not_in_county: `${p.osm || "The OSM object"} keeps ${p.osm_address || "its address"}. Nothing is uploaded.`,
   }[p.reason] || "Nothing is uploaded for this point. OSM stays as it is.";
   return { skip: true, title, desc };
@@ -1926,6 +1937,7 @@ async function syncUploads(verbose = false) {
   // component properties (switch.checked, input.value) only exist once Shoelace has upgraded them
   await Promise.all(["sl-switch", "sl-input", "sl-button", "sl-radio-group", "sl-dialog"].map((t) => customElements.whenDefined(t)));
   await loadBlocks();
+  if (!CENTER && blocks.length) map.fitBounds(blockLayer.getBounds(), { animate: false });
   pollJobs();
   checkJosm();
   syncUploads();

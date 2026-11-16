@@ -4,10 +4,11 @@
 # dependencies = ["shapely"]
 # ///
 """
-Local web UI for the Mecklenburg address import.
+Local web UI for a block-by-block address import (see blocks.py).
 
   ./webapp/server.py            # http://127.0.0.1:8765
   ./webapp/server.py --port 9000
+  ./webapp/server.py --dir imports/raleigh   # another project directory
 
 Wraps blocks.py: browse blocks on a map, generate/refresh changesets (one job
 at a time, so Overpass isn't hammered), inspect changes and review items,
@@ -33,14 +34,14 @@ from urllib.parse import parse_qs, urlparse
 ROOT = Path(__file__).resolve().parent.parent
 BDIR = ROOT / "blocks"
 STATIC = Path(__file__).resolve().parent / "static"
-CONFIG = BDIR / "config.json"
 STATUSES = ["pending", "ready", "nothing_to_do", "uploaded", "skipped", "error"]
 SERVED_FILES = {"changeset.osm", "changeset_review.geojson", "changeset_compare.png",
                 "changeset_before.png", "changeset_after.png", "changeset_summary.txt", "block.geojson",
                 "changeset_corrections.json", "changeset_pois.json"}
 
 sys.path.insert(0, str(ROOT))
-from conflate import street_key  # noqa: E402  (same address normalisation as the conflation)
+from conflate import register_street_types, street_key  # noqa: E402  (same address normalisation as the conflation)
+from sources import find_source  # noqa: E402
 
 state_lock = threading.Lock()
 
@@ -65,7 +66,19 @@ def save_state(s: dict):
 
 
 def load_config() -> dict:
-    return {"wiki": "", "conflate_args": "", "osm_user": "", **read_json(CONFIG, {})}
+    return {"wiki": "", "conflate_args": "", "osm_user": "", **read_json(BDIR / "config.json", {})}
+
+
+def project_info() -> dict:
+    """What the UI needs to know about the import: dataset names and where to start the map."""
+    try:
+        src = find_source(None, BDIR)
+    except SystemExit as e:
+        return {"name": "", "short_name": "source", "error": str(e)}
+    register_street_types(src.types)
+    center = src.area.get("center") or load_config().get("center")
+    return {"name": src.name, "short_name": src.short_name, "center": center,
+            "center_name": src.area.get("center_name", "the centre"), "changeset_source": src.changeset["source"]}
 
 
 _blocks_cache: dict = {}
@@ -117,7 +130,7 @@ def summary_stats(i: int) -> dict:
         if in_streets and line.strip():
             m = re.match(r"\s*(\d+)\s+(.+?)\s{2,}(?:OSM nearby: (.+))?$", line + "  ")
             if m:
-                streets.append({"count": int(m.group(1)), "county": m.group(2).strip(),
+                streets.append({"count": int(m.group(1)), "source": m.group(2).strip(),
                                 "suggestion": (m.group(3) or "").strip()})
         elif len(parts) == 2 and parts[1].isdigit():
             out[parts[0]] = int(parts[1])
@@ -716,7 +729,7 @@ def change_layers(i: int) -> dict:
 # with the changeset of every ready block it overlaps.
 
 OSM_API = "https://api.openstreetmap.org/api/0.6"
-UA = "meck-addr-import (local review UI)"
+UA = "osm-address-import (local review UI)"
 MATCH_SHARE = 0.6        # share of a block's changes that must be in the changeset
 sync_lock = threading.Lock()
 _seen_changesets: dict[int, set] = {}   # changeset id -> refs/keys it contains
@@ -868,7 +881,7 @@ class Jobs:
                 job = self.queue.popleft()
                 self.current = {**job, "started": time.time()}
             cfg = load_config()
-            cmd = [str(ROOT / "blocks.py"), "run", "--ids", str(job["id"])]
+            cmd = [str(ROOT / "blocks.py"), "--dir", str(BDIR), "run", "--ids", str(job["id"])]
             if job["refresh"]:
                 cmd.append("--refresh")
             if cfg.get("wiki"):
@@ -897,7 +910,7 @@ JOBS: Jobs | None = None
 # --- HTTP ------------------------------------------------------------------------
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "meck-addr/0.1"
+    server_version = "osm-address-import/0.2"
 
     def log_message(self, fmt, *args):
         if "/api/jobs" not in (args[0] if args else ""):
@@ -950,6 +963,16 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(blocks_with_state())
         if path == "/api/config":
             return self.send_json(load_config())
+        if path == "/api/project":
+            return self.send_json(project_info())
+        if path == "/api/project.js":
+            body = f"window.PROJECT = {json.dumps(project_info())};\n".encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/javascript; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            return self.wfile.write(body)
         if path == "/api/jobs":
             return self.send_json(JOBS.snapshot())
         if path == "/api/progress":
@@ -1015,7 +1038,7 @@ class Handler(BaseHTTPRequestHandler):
             for k in ("wiki", "conflate_args", "osm_user"):
                 if k in data:
                     cfg[k] = str(data[k]).strip()
-            CONFIG.write_text(json.dumps(cfg, indent=1))
+            (BDIR / "config.json").write_text(json.dumps(cfg, indent=1))
             return self.send_json(cfg)
         m = re.fullmatch(r"/api/blocks/(\d+)/decisions", path)
         if m:
@@ -1057,7 +1080,7 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     to = (float(data["lon"]), float(data["lat"]))
                     if metres(orig, to) > MAX_MOVE_M:
-                        return self.send_json({"error": f"more than {MAX_MOVE_M} m from the county point"}, 400)
+                        return self.send_json({"error": f"more than {MAX_MOVE_M} m from the original point"}, 400)
                     moves[cid] = [round(to[0], 7), round(to[1], 7)]
                 save_moves(i, moves)
             return self.send_json({"ok": True, "moved": cid in moves})
@@ -1145,15 +1168,21 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    global JOBS
+    global JOBS, BDIR
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--host", default="127.0.0.1")
+    ap.add_argument("--dir", help="project directory (default: blocks/)")
     args = ap.parse_args()
+    if args.dir:
+        BDIR = Path(args.dir).resolve()
+    info = project_info()
+    if info.get("error"):
+        sys.exit(info["error"])
     JOBS = Jobs()
     threading.Thread(target=sync_loop, daemon=True).start()
     srv = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f"Mecklenburg address import UI: http://{args.host}:{args.port}")
+    print(f"{info['name']} import UI: http://{args.host}:{args.port}")
     srv.serve_forever()
 
 

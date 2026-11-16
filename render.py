@@ -4,7 +4,7 @@
 # dependencies = ["matplotlib>=3.8"]
 # ///
 """
-Before/after render of a conflate.py run.
+Before/after render of a conflate.py run (any address source).
 
   ./render.py --bbox=-80.826,35.208,-80.817,35.214 --out out/elizabeth
 

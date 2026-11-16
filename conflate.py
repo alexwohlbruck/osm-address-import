@@ -4,9 +4,10 @@
 # dependencies = ["shapely>=2.0"]
 # ///
 """
-Conflate Mecklenburg County Master Address points onto existing OSM buildings.
+Conflate authoritative address points (a county or city address dataset, see
+sources/*.json) onto existing OSM buildings.
 
-Fetches county addresses and current OSM data for a bounding box, matches each
+Fetches source addresses and current OSM data for a bounding box, matches each
 address to the building it falls inside, and writes:
 
   <out>.osm             JOSM file: existing buildings with addr:* added (action=modify)
@@ -17,7 +18,7 @@ address to the building it falls inside, and writes:
 Nothing is uploaded. Open the .osm in JOSM, review, then upload yourself.
 
 Example:
-  ./conflate.py --bbox -80.8600,35.2050,-80.8400,35.2200 --out out/dilworth
+  ./conflate.py --source sources/mecklenburg-nc.json --bbox=-80.86,35.205,-80.84,35.22 --out out/dilworth
 """
 
 from __future__ import annotations
@@ -42,22 +43,12 @@ from shapely.affinity import affine_transform
 from shapely.geometry import LineString, Point, Polygon, shape
 from shapely.ops import polygonize, unary_union
 
-COUNTY_URL = "https://gis.charlottenc.gov/arcgis/rest/services/CountyData/MasterAddress/MapServer/0/query"
+from sources import DIRECTIONS, USPS_TYPES, Source, find_source, title_word  # noqa: F401
+
 DEFAULT_OVERPASS = "https://overpass-api.de/api/interpreter"
-UA = "meck-addr-conflate/0.1 (OSM import tooling)"
+UA = "osm-address-import/0.2 (OSM import tooling)"
 
 # --- street name handling ----------------------------------------------------
-
-# County 2-letter type codes -> full word
-COUNTY_TYPES = {
-    "AL": "Alley", "AV": "Avenue", "BV": "Boulevard", "BY": "Bypass", "CR": "Circle",
-    "CS": "Crossing", "CT": "Court", "CV": "Cove", "DR": "Drive", "FR": "Freeway",
-    "HY": "Highway", "LN": "Lane", "LP": "Loop", "PL": "Place", "PY": "Parkway",
-    "RD": "Road", "RN": "Run", "RW": "Row", "ST": "Street", "TC": "Trace",
-    "TL": "Trail", "TR": "Terrace", "WY": "Way", "XG": "Crossing",
-}
-DIRECTIONS = {"N": "North", "S": "South", "E": "East", "W": "West"}
-SUFFIXES = {**DIRECTIONS, "EXT": "Extension"}
 
 # Everything -> one canonical token, used only to compare names (never output).
 # Collisions (Saint/Street -> ST) are harmless because we only compare streets
@@ -74,39 +65,26 @@ _CANON = {
     "TER": "TR", "WAY": "WY", "EXTENSION": "EXT", "MOUNT": "MT",
     "FIRST": "1ST", "SECOND": "2ND", "THIRD": "3RD", "FOURTH": "4TH", "FIFTH": "5TH",
     "SIXTH": "6TH", "SEVENTH": "7TH", "EIGHTH": "8TH", "NINTH": "9TH", "TENTH": "10TH",
+    "NORTHEAST": "NE", "NORTHWEST": "NW", "SOUTHEAST": "SE", "SOUTHWEST": "SW",
+    "CRESCENT": "CRES", "EXPRESSWAY": "EXPY", "PLAZA": "PLZ", "SQUARE": "SQ",
 }
+
+
+def register_street_types(types: dict):
+    """Make a source's street type abbreviations compare equal to the full words."""
+    for abbr, full in types.items():
+        f = full.upper()
+        target = _CANON.get(f, f)
+        _CANON.setdefault(f, target)
+        _CANON.setdefault(abbr.upper(), target)
+
+
+register_street_types(USPS_TYPES)
 
 
 def street_key(name: str) -> str:
     toks = re.sub(r"[^A-Z0-9 ]", " ", name.upper().replace("'", "")).split()
     return " ".join(_CANON.get(t, t) for t in toks)
-
-
-def title_word(w: str) -> str:
-    if re.fullmatch(r"\d+(ST|ND|RD|TH)", w):
-        return w.lower()
-    if w.startswith("MC") and len(w) > 2:
-        return "Mc" + w[2:].capitalize()
-    if w.startswith("O'") and len(w) > 2:
-        return "O'" + w[2:].capitalize()
-    return "-".join(p.capitalize() for p in w.split("-"))
-
-
-def county_street(p: dict) -> str:
-    """Human-readable fallback street name built from county fields."""
-    parts = []
-    if p.get("Direction"):
-        parts.append(DIRECTIONS.get(p["Direction"], p["Direction"]))
-    parts += [title_word(w) for w in (p.get("StreetName") or "").split()]
-    if p.get("StreetType"):
-        parts.append(COUNTY_TYPES.get(p["StreetType"], p["StreetType"].title()))
-    if p.get("Suffix"):
-        parts.append(SUFFIXES.get(p["Suffix"], p["Suffix"].title()))
-    return " ".join(parts)
-
-
-def county_raw_street(p: dict) -> str:
-    return " ".join(x for x in (p.get("Direction"), p.get("StreetName"), p.get("StreetType"), p.get("Suffix")) if x)
 
 
 # --- local metric projection (good enough at county scale) ------------------
@@ -138,32 +116,13 @@ def http(url: str, data: dict | None = None, retries: int = 4) -> bytes:
     raise RuntimeError("unreachable")
 
 
-def fetch_county(bbox, cache: Path | None) -> list[dict]:
+def fetch_source(src: Source, bbox, cache: Path | None) -> list[dict]:
     if cache and cache.exists():
         return json.loads(cache.read_text())
-    w, s, e, n = bbox
-    feats, offset = [], 0
-    while True:
-        params = {
-            "where": "StatusCode='A'",
-            "geometry": f"{w},{s},{e},{n}",
-            "geometryType": "esriGeometryEnvelope",
-            "inSR": 4326, "outSR": 4326,
-            "spatialRel": "esriSpatialRelIntersects",
-            "outFields": "AddressID,HouseNumber,Direction,StreetName,StreetType,Suffix,Unit,PostalCity,State,ZipCode,ParcelID",
-            "orderByFields": "OBJECTID",
-            "resultOffset": offset, "resultRecordCount": 2000,
-            "f": "geojson",
-        }
-        page = json.loads(http(COUNTY_URL + "?" + urllib.parse.urlencode(params)))
-        feats += page.get("features", [])
-        if not page.get("exceededTransferLimit") and not page.get("properties", {}).get("exceededTransferLimit"):
-            break
-        offset += len(page["features"])
+    recs = src.fetch(bbox, http)
     if cache:
-        cache.write_text(json.dumps(feats))
-    return feats
-
+        cache.write_text(json.dumps(recs))
+    return recs
 
 
 CACHE_VERSION = "v2"
@@ -229,7 +188,7 @@ NOT_POI_AMENITY = {"parking", "parking_entrance", "parking_space", "bicycle_park
                    "bench", "waste_basket", "waste_disposal", "recycling", "vending_machine", "atm",
                    "charging_station", "drinking_water", "toilets", "post_box", "telephone", "fountain",
                    "shelter", "loading_dock", "bicycle_rental", "car_sharing", "letter_box", "clock"}
-POI_MAX_DIST = 25.0   # metres between a county point and the POI it is merged into
+POI_MAX_DIST = 25.0   # metres between a source point and the POI it is merged into
 
 
 def fetch_pois(bbox, overpass: str, cache: Path | None) -> dict:
@@ -261,7 +220,7 @@ def poi_kind(tags: dict) -> str:
 
 @dataclass
 class Addr:
-    """A county address point."""
+    """A source address point."""
     lon: float
     lat: float
     hn: str
@@ -271,7 +230,8 @@ class Addr:
     unit: str | None
     postcode: str | None
     city: str | None
-    county_id: str
+    county_id: str                  # the source's record id (name kept for saved review ids)
+    state: str | None = None
     street: str | None = None       # spelling to write (nearby OSM highway name, or override)
     street_from_osm: bool = False   # street resolved against an OSM highway / override
     precise_unit: bool = False      # unit has its own point (not stacked with other units)
@@ -299,9 +259,9 @@ class OsmAddr:
     pt: Point
     in_scope: bool
     bidx: int | None = None        # set when the object is itself a building outline
-    matched: list = field(default_factory=list)  # county Addr it represents
+    matched: list = field(default_factory=list)  # source Addr it represents
     fuzzy: bool = False            # matched with a different street spelling
-    rekey: bool = False            # its address is being replaced by the county's
+    rekey: bool = False            # its address is being replaced by the source's
     handled: bool = False          # sent to review
 
     @property
@@ -328,8 +288,8 @@ class Building:
     poly: Polygon
     tags: dict
     raw: dict | None = None
-    addrs: list[Addr] = field(default_factory=list)  # county points to add here
-    county_count: int = 0                             # all county points inside
+    addrs: list[Addr] = field(default_factory=list)  # source points to add here
+    county_count: int = 0                             # all source points inside
     osm_addr: OsmAddr | None = None                   # set if the outline itself has an address
 
 
@@ -345,8 +305,9 @@ def build_relation_polygon(el) -> Polygon | None:
     return unary_union(polys)
 
 
-_AFFIX = {"N", "S", "E", "W", "NE", "NW", "SE", "SW", "EXT"} | set(COUNTY_TYPES) | {
-    v for k, v in _CANON.items() if k not in ("SAINT", "MOUNT") and not v[0].isdigit()}
+def _affix() -> set:
+    return {"N", "S", "E", "W", "NE", "NW", "SE", "SW", "EXT"} | {
+        v for k, v in _CANON.items() if k not in ("SAINT", "MOUNT") and not v[0].isdigit()}
 
 
 def similar_street(k1: str, k2: str) -> bool:
@@ -355,6 +316,7 @@ def similar_street(k1: str, k2: str) -> bool:
     if not k1 or not k2 or re.findall(r"\d+", k1) != re.findall(r"\d+", k2):
         return False
     t1, t2 = k1.split(), k2.split()
+    _AFFIX = _affix()
     if [t for t in t1 if t in _AFFIX] != [t for t in t2 if t in _AFFIX]:
         return False
     core1 = " ".join(t for t in t1 if t not in _AFFIX)
@@ -385,13 +347,15 @@ def run(args):
         cache_dir.mkdir(exist_ok=True)
     tag = args.bbox.replace(",", "_")
 
-    print("Fetching county addresses...")
+    src = find_source(args.source)
+    register_street_types(src.types)
+    print(f"Fetching {src.name} addresses...")
     # padded like the OSM query, so OSM addresses near the block edge can still
     # be matched; only points inside the block are ever added
     pad = 0.004
-    cfeats = fetch_county((bbox[0] - pad, bbox[1] - pad, bbox[2] + pad, bbox[3] + pad),
-                          cache_dir / f"county_{CACHE_VERSION}_{tag}.json" if cache_dir else None)
-    print(f"  {sum(area.contains(Point(f['geometry']['coordinates'])) for f in cfeats)} active address points in block")
+    recs = fetch_source(src, (bbox[0] - pad, bbox[1] - pad, bbox[2] + pad, bbox[3] + pad),
+                        cache_dir / f"source_{src.path.stem}_{tag}.json" if cache_dir else None)
+    print(f"  {sum(area.contains(Point(r['lon'], r['lat'])) for r in recs)} address points in block")
     print("Fetching OSM data from Overpass...")
     osm = fetch_osm(bbox, args.overpass, cache_dir / f"osm_{CACHE_VERSION}_{tag}.json" if cache_dir else None)
     poi_data = {"elements": []}
@@ -405,7 +369,7 @@ def run(args):
     if args.street_overrides:
         with open(args.street_overrides) as f:
             for row in csv.DictReader(f):
-                overrides[row["county"].strip().upper()] = row["osm"].strip()
+                overrides[(row.get("source") or row["county"]).strip().upper()] = row["osm"].strip()
 
     # --- parse OSM: merge the several outputs of each element
     els: dict[tuple, dict] = {}
@@ -470,18 +434,14 @@ def run(args):
         for h in oa.hns():
             by_hn[h].append(oa)
 
-    # --- parse county
+    # --- parse source points
     addrs: list[Addr] = []
-    for f in cfeats:
-        p = f["properties"]
-        lon, lat = f["geometry"]["coordinates"]
-        raw = county_raw_street(p)
+    for r in recs:
         addrs.append(Addr(
-            lon=lon, lat=lat, hn=str(p["HouseNumber"]), street_raw=raw,
-            street_key=street_key(raw), street_fallback=county_street(p),
-            unit=p.get("Unit"), postcode=(p.get("ZipCode") or "")[:5] or None,
-            city=title_word_phrase(p.get("PostalCity")), county_id=p["AddressID"],
-            in_scope=area.contains(Point(lon, lat)),
+            lon=r["lon"], lat=r["lat"], hn=r["hn"], street_raw=r["street_raw"],
+            street_key=street_key(r["street_raw"]), street_fallback=r["street_fallback"],
+            unit=r["unit"], postcode=r["postcode"], city=r["city"], state=r["state"],
+            county_id=str(r["id"]), in_scope=area.contains(Point(r["lon"], r["lat"])),
         ))
 
     review = []
@@ -513,7 +473,7 @@ def run(args):
         review.append({"type": "Feature", "geometry": {"type": "Point", "coordinates": [lon, lat]}, "properties": props})
         stats[f"review_{reason}"] += 1
 
-    # 1. resolve county street spelling against nearby OSM highways
+    # 1. resolve source street spelling against nearby OSM highways
     resolved: list[Addr] = []
     for a in addrs:
         pt = P(a.lon, a.lat)
@@ -547,7 +507,7 @@ def run(args):
         if len(group) == 1 and group[0].unit:
             group[0].precise_unit = True
 
-    # 3. which building each county point falls in
+    # 3. which building each source point falls in
     tree = STRtree([b.poly for b in buildings]) if buildings else None
     pts = [P(a.lon, a.lat) for a in addrs]
     if tree is not None and pts:
@@ -582,13 +542,13 @@ def run(args):
             return "fuzzy"
         return None
 
-    # county addresses by key, to tell a wrong OSM number from an offset one
+    # source addresses by key, to tell a wrong OSM number from an offset one
     county_at = defaultdict(list)
     for a in addrs:
         county_at[a.key()].append((P(a.lon, a.lat), a))
 
     def county_has(hn: str, osm_street: str, near: Point) -> Addr | None:
-        """The nearest county point with this number and street, if one is within dup_radius."""
+        """The nearest source point with this number and street, if one is within dup_radius."""
         sk = street_key(osm_street)
         best = None
         for (h, k), pts_ in county_at.items():
@@ -602,7 +562,7 @@ def run(args):
     def other_pt_dist(a_: Addr, oa_: OsmAddr) -> float:
         return P(a_.lon, a_.lat).distance(oa_.pt)
 
-    # 4. reconcile county points with addressed building outlines they fall in
+    # 4. reconcile source points with addressed building outlines they fall in
     for b in buildings:
         oa = b.osm_addr
         if oa is None:
@@ -619,7 +579,7 @@ def run(args):
                     a.exists = True
                 oa.matched.append(a)
                 oa.fuzzy |= same_street(a, osm_sk) == "fuzzy"
-            continue  # other county numbers in this outline are handled as additions later
+            continue  # other source numbers in this outline are handled as additions later
         keys = {a.key() for a in inside_pts}
         if not oa.in_scope:
             for a in inside_pts:      # decided by the neighbouring block
@@ -628,7 +588,7 @@ def run(args):
         other = county_has(osm_hns[0], oa.tags.get("addr:street", ""), oa.pt) \
             if len(keys) == 1 and len(osm_hns) == 1 and oa.type == "way" else None
         if other is not None:
-            # OSM's number is a real county address nearby: the outline and the
+            # OSM's number is a real source address nearby: the outline and the
             # point disagree about which house is which (offset). Needs eyes.
             for a in inside_pts:
                 a.handled = True
@@ -643,8 +603,8 @@ def run(args):
                                            if ob and ob.osm_addr else ""))
             continue
         if len(keys) == 1 and len(osm_hns) == 1 and oa.type == "way":
-            # one county address inside and OSM's number doesn't exist in the
-            # county data: county wins. The old number no longer counts as
+            # one source address inside and OSM's number doesn't exist in the
+            # source data: the source wins. The old number no longer counts as
             # "in OSM" for anyone else (step 5).
             for a in inside_pts:
                 oa.matched.append(a)
@@ -690,7 +650,7 @@ def run(args):
         if a.in_scope and not a.street_from_osm and not (a.exists or a.handled) and id(a) not in resolved_ids:
             flag(a, "street_not_found_in_osm", osm_suggestion=suggestions.get(a.street_raw, ""))
 
-    # 6. corrections: county data is trusted for the fields it has
+    # 6. corrections: source data is trusted for the fields it has
     corrections = []   # (oa, new_tags, fields)
     for oa in osm_addrs:
         if not oa.matched:
@@ -701,7 +661,7 @@ def run(args):
             continue
         if not oa.in_scope:
             continue
-        # representative: the plain (non-unit) county point if there is one
+        # representative: the plain (non-unit) source point if there is one
         a = next((m for m in oa.matched if not m.precise_unit), oa.matched[0])
         new = dict(oa.tags)
         fields = []
@@ -732,7 +692,7 @@ def run(args):
         if args.city:
             setf("addr:city", a.city, "city")
         if args.state:
-            setf("addr:state", "NC", "state")
+            setf("addr:state", a.state, "state")
         if a.precise_unit and len(oa.matched) == 1 and oa.tags.get("addr:unit") not in (None, a.unit):
             new["addr:unit"] = a.unit
             fields.append("unit")
@@ -743,7 +703,7 @@ def run(args):
             continue
         corrections.append((oa, new, fields))
 
-    # 7. additions: county points that exist nowhere in OSM
+    # 7. additions: source points that exist nowhere in OSM
     key_bldgs = defaultdict(set)
     for a in resolved:
         if not (a.exists or a.handled) and a.bidx is not None:
@@ -816,10 +776,10 @@ def run(args):
             for a in firsts:
                 flag(a, "multiple_addresses_in_building", osm=ref)
 
-    # 7b. strip malls and office buildings: a county point whose shop/office is
+    # 7b. strip malls and office buildings: a source point whose shop/office is
     #     already mapped as an unaddressed POI puts its address on that POI
     #     instead of on a new node. Only clear pairs: each is the other's
-    #     nearest, within POI_MAX_DIST, and no other county point is nearly as close.
+    #     nearest, within POI_MAX_DIST, and no other source point is nearly as close.
     poi_merge: dict[int, int] = {}                  # new_nodes index -> pois index
     poi_candidates: dict[int, list] = {}            # new_nodes index -> [(pois index, metres)]
     nodes_in = defaultdict(list)
@@ -1017,7 +977,7 @@ def run(args):
     summary += [f"  {n:6}  {s:30} " + (f"OSM nearby: {suggestions[s]}" if suggestions.get(s) else "")
                 for s, n in unmatched_streets.most_common(50)]
     summary += ["", "Suggested changeset tags:",
-                "  source=Mecklenburg County GIS Master Address",
+                f"  source={src.changeset['source']}",
                 "  import=yes",
                 "  url=<your import wiki page>"]
     Path(f"{out}_summary.txt").write_text("\n".join(summary) + "\n")
@@ -1049,18 +1009,14 @@ def ledger_hit(ledger: dict, key: tuple, lon: float, lat: float, radius_m: float
     return None
 
 
-def title_word_phrase(s: str | None) -> str | None:
-    return " ".join(title_word(w) for w in s.split()) if s else None
-
-
 def addr_tags(a: Addr, args) -> dict:
     t = {"addr:housenumber": a.hn, "addr:street": a.street}
     if a.postcode:
         t["addr:postcode"] = a.postcode
     if a.city and args.city:
         t["addr:city"] = a.city
-    if args.state:
-        t["addr:state"] = "NC"
+    if args.state and a.state:
+        t["addr:state"] = a.state
     if a.precise_unit:
         t["addr:unit"] = a.unit
     return t
@@ -1069,7 +1025,7 @@ def addr_tags(a: Addr, args) -> dict:
 def write_osm(path: Path, modified_ways: dict, modified_nodes: dict, nodes: dict, new_nodes: list,
               modified_relations: dict | None = None, members: dict | None = None):
     lines = ['<?xml version="1.0" encoding="UTF-8"?>',
-             '<osm version="0.6" generator="meck-addr-conflate">']
+             '<osm version="0.6" generator="osm-address-import">']
 
     def tag_lines(tags):
         return [f"    <tag k={quoteattr(k)} v={quoteattr(str(v))}/>" for k, v in tags.items()]
@@ -1117,8 +1073,10 @@ def write_osm(path: Path, modified_ways: dict, modified_nodes: dict, nodes: dict
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--source", help="address source definition (sources/*.json); "
+                    "default: the only file in sources/")
     ap.add_argument("--bbox", help="minlon,minlat,maxlon,maxlat (keep it neighborhood-sized)")
-    ap.add_argument("--polygon", help="GeoJSON polygon: only county points / OSM addresses inside it are processed")
+    ap.add_argument("--polygon", help="GeoJSON polygon: only source points / OSM addresses inside it are processed")
     ap.add_argument("--out", required=True, help="output path prefix, e.g. out/dilworth")
     ap.add_argument("--overpass", default=DEFAULT_OVERPASS)
     ap.add_argument("--cache", action="store_true", help="cache downloads in <out dir>/.cache")
@@ -1130,22 +1088,22 @@ def main():
                     help="metres: attach an address outside any building to the nearest building within this distance (flagged)")
     ap.add_argument("--street-radius", type=float, default=300.0, help="metres to search for the matching OSM street")
     ap.add_argument("--dup-radius", type=float, default=150.0,
-                    help="metres: an OSM address with the same number and street within this represents the county point")
-    ap.add_argument("--street-overrides", help="CSV with columns county,osm (county = e.g. 'N TRYON ST')")
+                    help="metres: an OSM address with the same number and street within this represents the source point")
+    ap.add_argument("--street-overrides", help="CSV with columns source,osm (source = the street as the source writes it, e.g. 'N TRYON ST')")
     ap.add_argument("--allow-unmatched-streets", action="store_true",
-                    help="use the expanded county name when no nearby OSM street matches (default: send to review)")
+                    help="use the expanded source name when no nearby OSM street matches (default: send to review)")
     ap.add_argument("--corrections", choices=["all", "differences", "none"], default="all",
                     help="existing OSM addresses: fix differing fields and fill missing ones (all), "
                          "only fix differing fields (differences), or leave them alone (none)")
     ap.add_argument("--merge-pois", choices=["auto", "suggest", "off"], default="auto",
-                    help="put a county address on the unaddressed shop/office POI it clearly belongs to (auto), "
+                    help="put a source address on the unaddressed shop/office POI it clearly belongs to (auto), "
                          "only list POIs as merge suggestions in the UI (suggest), or ignore POIs (off)")
     ap.add_argument("--flag-unknown", action="store_true",
-                    help="send OSM addresses with no county counterpart to review (default: count only)")
+                    help="send OSM addresses with no source counterpart to review (default: count only)")
     ap.add_argument("--ledger", help="JSON of addresses proposed by other blocks (written by blocks.py)")
     ap.add_argument("--block-id", type=int, help="this block's id, so its own ledger entries are ignored")
     ap.add_argument("--no-city", dest="city", action="store_false", help="omit addr:city")
-    ap.add_argument("--no-state", dest="state", action="store_false", help="omit addr:state")
+    ap.add_argument("--no-state", dest="state", action="store_false", help="omit addr:state (also omitted when the source has no state)")
     run(ap.parse_args())
 
 

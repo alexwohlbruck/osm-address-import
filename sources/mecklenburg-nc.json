@@ -1,0 +1,35 @@
+{
+  "name": "Mecklenburg County Master Address",
+  "short_name": "county",
+  "changeset": {
+    "source": "Mecklenburg County GIS Master Address",
+    "comment": "Add addresses from Mecklenburg County Master Address data"
+  },
+  "area": {
+    "relation": 2528722,
+    "center": [-80.8431, 35.2271],
+    "center_name": "Uptown"
+  },
+  "fetch": {
+    "type": "arcgis",
+    "url": "https://gis.charlottenc.gov/arcgis/rest/services/CountyData/MasterAddress/MapServer/0",
+    "where": "StatusCode='A'"
+  },
+  "fields": {
+    "id": "AddressID",
+    "housenumber": "HouseNumber",
+    "street": {"prefix": "Direction", "name": "StreetName", "type": "StreetType", "suffix": "Suffix"},
+    "unit": "Unit",
+    "postcode": "ZipCode",
+    "city": "PostalCity",
+    "state": {"value": "NC"}
+  },
+  "postcode_digits": 5,
+  "street_types": {
+    "AL": "Alley", "AV": "Avenue", "BV": "Boulevard", "BY": "Bypass", "CR": "Circle",
+    "CS": "Crossing", "CT": "Court", "CV": "Cove", "DR": "Drive", "FR": "Freeway",
+    "HY": "Highway", "LN": "Lane", "LP": "Loop", "PL": "Place", "PY": "Parkway",
+    "RD": "Road", "RN": "Run", "RW": "Row", "ST": "Street", "TC": "Trace",
+    "TL": "Trail", "TR": "Terrace", "WY": "Way", "XG": "Crossing"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "OpenAddresses: Example City",
+  "short_name": "source",
+  "changeset": {
+    "source": "Example City address points (via OpenAddresses)",
+    "comment": "Add addresses from Example City address data"
+  },
+  "area": {
+    "relation": 0
+  },
+  "fetch": {
+    "type": "file",
+    "path": "data/example-city-addresses.geojson"
+  },
+  "fields": {
+    "id": "hash",
+    "housenumber": "number",
+    "street": "street",
+    "unit": "unit",
+    "postcode": "postcode",
+    "city": "city",
+    "state": "region"
+  }
+}
