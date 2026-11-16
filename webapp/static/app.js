@@ -1181,7 +1181,113 @@ function keepOneOptions(it) {
   return opts;
 }
 
+/** Stack only records with the same complete base tags and source coordinate. */
+function stackedAddress(it) {
+  const key = (x) => {
+    const tags = { ...countyTagsOf(x.p) };
+    delete tags["addr:unit"];
+    const ll = reviewLatLng(x);
+    return JSON.stringify([x.p.reason, x.p.osm_suggestion, Object.entries(tags).sort(), ll?.map((v) => +v.toFixed(7))]);
+  };
+  const k = key(it);
+  return P.items.filter((x) => x.review && key(x) === k);
+}
+
+function flatRanges(units) {
+  const values = [...new Set(units)].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const ranges = [];
+  for (let i = 0; i < values.length; i++) {
+    const start = values[i];
+    let end = start;
+    if (/^(0|[1-9]\d*)$/.test(start)) {
+      while (i + 1 < values.length && /^(0|[1-9]\d*)$/.test(values[i + 1]) && +values[i + 1] === +end + 1) end = values[++i];
+    }
+    ranges.push(start === end ? start : `${start}-${end}`);
+  }
+  return ranges.join(";");
+}
+
+function stackOption(it) {
+  if (it.p.reason !== "street_not_found_in_osm" || !it.p.osm_suggestion || !reviewLatLng(it)) return null;
+  const group = stackedAddress(it);
+  if (group.length < 2) return null;
+  const target = group.find((x) => !/#/.test(x.p.county_address)) || group[0];
+  const tags = { ...countyTagsOf(target.p), "addr:street": it.p.osm_suggestion };
+  delete tags["addr:unit"];
+  const units = group.map((x) => x.p.county_tags?.["addr:unit"] || x.p.county_address.match(/ #(.+)$/)?.[1]).filter(Boolean);
+  const flats = flatRanges(units);
+  if (flats && [...flats].length <= 255) tags["addr:flats"] = flats;
+  const ll = reviewLatLng(target);
+  const fix = { objects: {}, points: [{ lon: ll[0], lat: ll[1], tags }] };
+  return { title: `Combine ${group.length} stacked records into one address point`,
+    desc: `${addrLine(tags)} at the shared source location. ` + (tags["addr:flats"] ? `addr:flats=${flats}. ` : flats ? `The exact unit list needs ${[...flats].length} characters, beyond OSM's 255-character tag limit, so only the building address is added. ` : "")
+      + `Replaces this stack's saved fixes; the other ${group.length - 1} records are skipped. Unit data stays in the source.`,
+    fix, states: group.map((x) => ({ cid: x.cid, fix: x === target ? fix : null, decision: x === target ? "resolved" : "ignored" })) };
+}
+
+function streetBatchOption(it) {
+  if (it.p.reason !== "street_not_found_in_osm" || !it.p.osm_suggestion) return null;
+  const source = normAddr(countyTagsOf(it.p)?.["addr:street"]);
+  const matches = P.items.filter((x) => x.review && !x.p.decision && !x.p.fix
+    && x.p.reason === it.p.reason && normAddr(countyTagsOf(x.p)?.["addr:street"]) === source
+    && x.p.osm_suggestion === it.p.osm_suggestion && reviewLatLng(x));
+  const states = [], seen = new Set();
+  for (const x of matches) {
+    if (seen.has(x.cid)) continue;
+    const group = stackedAddress(x);
+    // Saved/skipped items are preserved. Their remaining stack has its own explicit combine option.
+    if (group.some((y) => y.p.decision || y.p.fix)) continue;
+    const combined = stackOption(x);
+    if (combined) {
+      states.push(...combined.states);
+      group.forEach((y) => seen.add(y.cid));
+    } else {
+      const ll = reviewLatLng(x);
+      states.push({ cid: x.cid, decision: "resolved", fix: { objects: {}, points: [{ lon: ll[0], lat: ll[1],
+        tags: { ...countyTagsOf(x.p), "addr:street": it.p.osm_suggestion } }] } });
+      seen.add(x.cid);
+    }
+  }
+  if (!states.length) return null;
+  return { title: `Use ${it.p.osm_suggestion} for ${states.length} matching undecided records`,
+    desc: `This block only: ${countyTagsOf(it.p)["addr:street"]} → ${it.p.osm_suggestion}. Stacked records become one address point. Existing decisions are kept. Undo restores the whole batch.`, states };
+}
+
+async function applyReviewBatch(it, o) {
+  const before = o.states.map(({ cid }) => {
+    const x = P.items.find((y) => y.cid === cid);
+    return { cid, fix: x.p.fix ? structuredClone(x.p.fix) : null, decision: x.p.decision || null };
+  });
+  let historyToken = null;
+  const run = async (states, expected) => {
+    const r = await fetch(`/api/blocks/${P.id}/review-batch`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ states, expected, history_token: historyToken }) });
+    const j = await r.json();
+    if (!r.ok) { toast(j.error === "duplicate" ? `Not saved: duplicate address on ${j.clashes.join(", ")}. No items changed.` : j.error, true); return false; }
+    historyToken = j.history_token;
+    for (const s of j.states) {
+      const x = P.items.find((y) => y.cid === s.cid);
+      x.p.fix = s.fix; x.p.decision = s.decision;
+      x.layer?.setStyle(changeStyle(x.p));
+      refreshRow(s.cid);
+    }
+    P.fx = null; P.picking = null; P.fxDirty = false;
+    map.getContainer().classList.remove("picking");
+    renderReviewProgress(); renderBody(); renderInspector(); drawFix(P.items.find((x) => x.cid === P.open));
+    return true;
+  };
+  if (!await run(o.states, before)) return false;
+  // Server rounds coordinates. Use its resulting state for optimistic concurrency on undo.
+  const after = o.states.map(({ cid }) => {
+    const x = P.items.find((y) => y.cid === cid);
+    return { cid, fix: structuredClone(x.p.fix), decision: x.p.decision || null };
+  });
+  record({ block: P.id, cid: it.cid, label: o.title, undo: () => run(before, after), redo: () => run(after, before) });
+  toast(`Saved ${o.states.length} review decisions. Undo restores them together.`);
+  return true;
+}
+
 function optionOn(it, o) {
+  if (o.states) return o.states.every((s) => { const x = P.items.find((y) => y.cid === s.cid); return x && sameFix(x.p.fix, s.fix) && (x.p.decision || null) === s.decision; });
   const t = P.items.find((x) => x.cid === (o.target || it.cid));
   if (!t?.p.fix || t.p.decision === "ignored" || !sameFix(o.fix, t.p.fix)) return false;
   return (o.ignore || []).every((c) => P.items.find((x) => x.cid === c)?.p.decision === "ignored");
@@ -1194,6 +1300,7 @@ function skipItem(it) {
 
 /** Apply a suggested fix; "keep one" options also drop the duplicates. One undo step. */
 async function applyOption(it, o) {
+  if (o.states) return applyReviewBatch(it, o);
   if (!o.target && !o.ignore) return saveFix(it, o.fix);
   const also = o.also || [];
   // ignored duplicates first so the kept fix doesn't clash with them, then the target, then
@@ -1239,7 +1346,8 @@ function fixOptions(it) {
   const ct = p.county_tags || (p.county_address && p.proposed_street
     ? { "addr:housenumber": hnOf(p.county_address), "addr:street": p.proposed_street } : null);
   const main = (p.osm || "").split(",")[0];
-  const opts = keepOneOptions(it);
+  const combined = stackOption(it);
+  const opts = combined ? [combined] : keepOneOptions(it);
   const add = (o) => { if (!opts.some((x) => sameFix(x.fix, o.fix))) opts.push(o); };
   const point = (tags, at = ll) => ({ lon: at[0], lat: at[1], tags });
   if (NO_FIX.has(p.reason) || opts.length) return opts;
@@ -1291,7 +1399,7 @@ function fixSummary(fix, objs) {
       .map((k) => !(k in t) ? `<span class="rm">${esc(k)}</span>` : `${esc(k)}=<b>${esc(t[k])}</b>`);
     lines.push(`<li><sl-icon name="pencil"></sl-icon><span>${osmLinks(ref)}: ${ch.join(", ") || "no change"}</span></li>`);
   }
-  for (const pt of fix.points || []) lines.push(`<li><sl-icon name="plus-circle"></sl-icon><span>new point <b>${esc(addrLine(pt.tags))}</b></span></li>`);
+  for (const pt of fix.points || []) lines.push(`<li><sl-icon name="plus-circle"></sl-icon><span>new point <b>${esc(addrLine(pt.tags))}</b>${pt.tags["addr:flats"] ? ` · units ${esc(pt.tags["addr:flats"])}` : ""}</span></li>`);
   return `<ul class="fix-sum">${lines.join("")}</ul>`;
 }
 
@@ -1336,12 +1444,14 @@ function outcomeBox(it, opts) {
 function fixSection(it) {
   const p = it.p;
   const opts = [...fixOptions(it), skipOption(it)];
+  const batch = streetBatchOption(it);
   const saved = p.fix;
   if (!P.fx || P.fxFor !== it.cid) { P.fx = structuredClone(saved || { objects: {}, points: [] }); P.fxFor = it.cid; P.fxDirty = false; }
   const manual = saved && p.decision === "resolved" && !opts.some((o) => !o.skip && sameFix(o.fix, saved));
   const isOn = (o) => o.skip ? p.decision === "ignored" && !opts.some((x) => x.target && optionOn(it, x)) : optionOn(it, o);
   return `<div class="insp-sec fixes">
     ${outcomeBox(it, opts)}
+    ${batch ? `<button class="fix-opt" id="fx-street-batch"><span class="fo-n">↻</span><span class="fo-main"><b>${esc(batch.title)}</b><span>${esc(batch.desc)}</span></span><sl-icon name="collection"></sl-icon></button>` : ""}
     <h4>What should happen?</h4>
     <div class="fix-opts">${opts.map((o, k) => `
       <button class="fix-opt ${o.skip ? "skip" : ""} ${isOn(o) ? "on" : ""}" data-opt="${k}">
@@ -1411,6 +1521,7 @@ function scopeBase(it, scope) {
 }
 
 function wireFixSection(it) {
+  if ($("#fx-street-batch")) $("#fx-street-batch").onclick = () => { const o = streetBatchOption(it); if (o) return applyReviewBatch(it, o); };
   const root = $("#insp");
   const dirty = (focusSel) => { P.fxDirty = true; P.fxOpen = true; renderInspector(); drawFix(it); if (focusSel) root.querySelector(focusSel)?.focus(); };
   root.querySelectorAll("[data-opt]").forEach((b) => b.onclick = () => {
@@ -1634,11 +1745,12 @@ async function travel(fromStack, toStack, verb) {
   historyBusy = true;
   try {
     if (e.block != null && selected !== e.block) await select(e.block);
-    await (verb === "Undo" ? e.undo() : e.redo());
+    if (await (verb === "Undo" ? e.undo() : e.redo()) === false) throw new Error("The action could not be saved");
     toStack.push(e);
     if (e.cid && P?.items.some((i) => i.cid === e.cid)) inspect(e.cid);
     toast(`${verb}: ${e.label}`);
   } catch (err) {
+    fromStack.push(e);
     toast(`${verb} failed: ${err.message}`, true);
   } finally {
     historyBusy = false;

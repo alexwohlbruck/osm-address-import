@@ -186,3 +186,16 @@ Upload from JOSM as usual; "Open in JOSM" pre-fills the changeset tags
 Settings, the server checks your changesets on start-up and every 10 minutes
 (or ⋯ → Check OSM for uploads): a changeset that contains at least 60% of a
 ready block's changes marks that block uploaded and links it.
+
+For **Street not found in OSM**, the inspector has a button to apply the suggested
+OSM spelling to every undecided item in the current block with the same source
+street and suggestion. Saved decisions are preserved. The entire batch is checked
+for duplicate addresses before saving and can be undone/redone together.
+
+Records with the same base address tags and exact source location also offer
+**Combine stacked records into one address point**. This replaces the stack's
+saved fixes with one point and skips the remaining records. Where unit identifiers
+are available, the point uses [`addr:flats`](https://wiki.openstreetmap.org/wiki/Key:addr:flats)
+with exact consecutive ranges and semicolon-separated gaps. If the exact list
+exceeds OSM's 255-character tag limit, the option explains that only the base
+address will be added. It never fills gaps by inventing a min–max range.

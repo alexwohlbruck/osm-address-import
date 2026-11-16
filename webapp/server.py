@@ -21,6 +21,7 @@ import argparse
 import json
 import mimetypes
 import re
+import secrets
 import subprocess
 import sys
 import threading
@@ -384,10 +385,10 @@ def snapshot_xml(snap: dict, tags: dict) -> tuple[ET.Element, list[ET.Element]]:
     return el, extra
 
 
-def apply_fixes(i: int, root: ET.Element, skip: str | None = None):
+def apply_fixes(i: int, root: ET.Element, skip: str | None = None, *, fixes=None, decisions=None):
     """Write every fix (except skip's) into a changeset tree."""
-    fixes = load_fixes(i)
-    dec = load_decisions(i)
+    fixes = load_fixes(i) if fixes is None else fixes
+    dec = load_decisions(i) if decisions is None else decisions
     by_ref = {f"{el.tag}/{el.get('id')}": el for el in root}
     next_id = min([int(n.get("id")) for n in root.findall("node")] + [0]) - 1
     first_way = next((k for k, el in enumerate(root) if el.tag in ("way", "relation")), len(root))
@@ -435,18 +436,18 @@ def apply_fixes(i: int, root: ET.Element, skip: str | None = None):
     root.extend(x for x in new_other if x.tag == "relation")
 
 
-def fix_clashes(i: int, cid: str, fx: dict, replaces_change: bool = False) -> list[str]:
+def fix_clashes(i: int, cid: str, fx: dict, replaces_change: bool = False, *, fixes=None, decisions=None) -> list[str]:
     """Addresses this fix would duplicate: anything else in OSM or the changeset with the same address.
     replaces_change: the fix moves change cid elsewhere, so cid's own change doesn't count."""
     state = dict(osm_base(i))
-    root = ET.fromstring(filtered_changeset(i, skip_fix=cid, also_reject=(cid,) if replaces_change else ()))
+    root = ET.fromstring(filtered_changeset(i, skip_fix=cid, also_reject=(cid,) if replaces_change else (), fixes=fixes, decisions=decisions))
     if replaces_change and REF_RE.fullmatch(cid):
         state.pop(cid, None)   # the original object goes back to its OSM state, which had no such address
     for el in root:
         if el.tag in ("node", "way", "relation"):
             t = tags_of(el)
             if el.get("id").startswith("-"):
-                state[f"new node at {float(el.get('lat')):.5f},{float(el.get('lon')):.5f}"] = t
+                state[f"new node {el.get('id')} at {float(el.get('lat')):.5f},{float(el.get('lon')):.5f}"] = t
             elif el.get("action") == "modify":
                 state[f"{el.tag}/{el.get('id')}"] = t
     mine = dict(fx.get("objects", {}))
@@ -463,6 +464,63 @@ def fix_clashes(i: int, cid: str, fx: dict, replaces_change: bool = False) -> li
             seen[key] = ref
             out += [r for r, t in state.items() if key in addr_keys(t)]
     return sorted(set(out))[:5]
+
+
+_review_history: dict = {}
+
+
+def review_batch(i: int, states: list, expected: list | None = None, history_token: str | None = None) -> dict:
+    """Validate the final state in memory before saving a group of review decisions."""
+    rev = {review_cid(f["properties"]) for f in read_json(block_dir(i) / "changeset_review.geojson", {"features": []})["features"]}
+    fixes, dec = load_fixes(i), load_decisions(i)
+    public = lambda cid: {"cid": cid, "fix": {k: v for k, v in fixes[cid].items() if k != "el"} if cid in fixes else None,
+                          "decision": dec.get(cid)}
+    if not isinstance(states, list) or not states or len(states) > 2000:
+        raise ValueError("Choose between 1 and 2000 review items")
+    ids = [s["cid"] for s in states]
+    if len(set(ids)) != len(ids) or any(cid not in rev for cid in ids):
+        raise ValueError("Unknown or repeated review item")
+    if expected is not None and expected != [public(cid) for cid in ids]:
+        return {"error": "These items changed. Reload the block and try again."}
+    before = [public(cid) for cid in ids]
+    receipt = _review_history.get(history_token)
+    restoring = bool(receipt and receipt["block"] == i and states == receipt["before"] and before == receipt["after"])
+    for s in states:
+        cid, fx, decision = s["cid"], s.get("fix"), s.get("decision")
+        if decision not in (None, "resolved", "ignored"):
+            raise ValueError("Invalid review decision")
+        if fx and (fx.get("objects") or fx.get("points")):
+            clean = lambda t: {str(k).strip(): str(v).strip() for k, v in t.items() if str(k).strip() and str(v).strip()}
+            objects = {r: clean(t) for r, t in fx.get("objects", {}).items() if REF_RE.fullmatch(r)}
+            points = [{"lon": round(float(p["lon"]), 7), "lat": round(float(p["lat"]), 7), "tags": clean(p["tags"])} for p in fx.get("points", [])]
+            for tags in [*objects.values(), *(p["tags"] for p in points)]:
+                if any(len(k) > 255 or len(v) > 255 for k, v in tags.items()):
+                    raise ValueError("OSM tag keys and values must fit within 255 characters")
+            if any(not (-180 <= p["lon"] <= 180 and -90 <= p["lat"] <= 90) for p in points):
+                raise ValueError("Invalid point coordinates")
+            old = fixes.get(cid, {}).get("el", {})
+            fixes[cid] = {"objects": objects, "points": points,
+                          "el": {r: old.get(r) or element_snapshot(i, r) for r in objects}}
+        else:
+            fixes.pop(cid, None)
+        if decision:
+            dec[cid] = decision
+        else:
+            dec.pop(cid, None)
+    for cid in ids:
+        if not restoring and cid in fixes and dec.get(cid) == "resolved":
+            clashes = fix_clashes(i, cid, fixes[cid], fixes=fixes, decisions=dec)
+            if clashes:
+                return {"error": "duplicate", "clashes": clashes}
+    save_fixes(i, fixes)
+    save_decisions(i, dec)
+    after = [public(cid) for cid in ids]
+    if not receipt:
+        history_token = secrets.token_urlsafe(24)
+        _review_history[history_token] = {"block": i, "before": before, "after": after}
+        if len(_review_history) > 200:
+            _review_history.pop(next(iter(_review_history)))
+    return {"ok": True, "states": after, "history_token": history_token}
 
 
 def load_pois(i: int) -> dict:
@@ -485,17 +543,18 @@ def set_tags(el: ET.Element, tags: dict):
         ET.SubElement(el, "tag", k=k, v=str(v))
 
 
-def filtered_changeset(i: int, skip_edit: str | None = None, skip_fix: str | None = None, also_reject: tuple = ()) -> bytes:
+def filtered_changeset(i: int, skip_edit: str | None = None, skip_fix: str | None = None, also_reject: tuple = (), *, fixes=None, decisions=None) -> bytes:
     """changeset.osm with the user's decisions applied: rejected changes removed
     (rejected corrections are reverted), manual POI merges and tag edits applied."""
     osm = block_dir(i) / "changeset.osm"
-    dec = load_decisions(i)
+    dec = load_decisions(i) if decisions is None else decisions
+    fixes = load_fixes(i) if fixes is None else fixes
     edits = {k: v for k, v in load_edits(i).items() if k != skip_edit}
     moves = load_moves(i)
     # "moved": the change was put on another object by a fix; the original is dropped like a rejection
     rejected = {k for k, v in dec.items() if v in ("rejected", "moved")} | set(also_reject)
     merges = {k: v[len("merge:"):] for k, v in dec.items() if v.startswith("merge:")}
-    has_fixes = any(k != skip_fix for k in load_fixes(i))
+    has_fixes = any(k != skip_fix for k in fixes)
     if not rejected and not merges and not edits and not moves and not has_fixes and not also_reject:
         return osm.read_bytes()
 
@@ -557,7 +616,7 @@ def filtered_changeset(i: int, skip_edit: str | None = None, skip_fix: str | Non
             n.attrib.pop("action", None)
         elif (ref in rejected or n.get("action") != "modify") and nid not in used:
             root.remove(n)
-    apply_fixes(i, root, skip_fix)
+    apply_fixes(i, root, skip_fix, fixes=fixes, decisions=dec)
     ET.indent(root)
     return ET.tostring(root, encoding="UTF-8", xml_declaration=True) + b"\n"
 
@@ -1103,6 +1162,16 @@ class Handler(BaseHTTPRequestHandler):
                     edits[cid] = tags
                 save_edits(i, edits)
             return self.send_json({"ok": True, "edit": edits.get(cid)})
+        m = re.fullmatch(r"/api/blocks/(\d+)/review-batch", path)
+        if m:
+            try:
+                with state_lock:
+                    result = review_batch(int(m.group(1)), data.get("states"), data.get("expected"), data.get("history_token"))
+            except (ValueError, TypeError, KeyError) as e:
+                return self.send_json({"error": str(e)}, 400)
+            except Exception as e:
+                return self.send_json({"error": str(e)}, 502)
+            return self.send_json(result, 200 if result.get("ok") else 409)
         m = re.fullmatch(r"/api/blocks/(\d+)/fix", path)
         if m:
             i, cid, fx = int(m.group(1)), str(data.get("cid", "")), data.get("fix")
